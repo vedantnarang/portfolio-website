@@ -44,3 +44,6 @@ next-env.d.ts
 /PLAN.md
 /portfolio-spec.md
 /skills
+
+# lockfile (regenerate on install)
+/package-lock.json

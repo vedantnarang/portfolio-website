@@ -1,26 +1,208 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: <html class="dark">.
+   Boot script in layout.tsx applies system preference / saved choice. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Design tokens — source: design.md §1 (GitHub Primer values)
+   Light mode is :root default; .dark overrides below.
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --canvas: #ffffff;
+  --inset: #f6f8fa;
+  --subtle: #f6f8fa;
+  --overlay: #ffffff;
+  --hover: rgb(208 215 222 / 0.32);
+
+  /* Text */
+  --ink: #1f2328;
+  --muted: #656d76;
+  --faint: #818b98;
+
+  /* Borders */
+  --line: #d0d7de;
+  --line-muted: #d8dee4;
+
+  /* Semantic states */
+  --link: #0969da;
+  --success: #1a7f37;
+  --btn-primary: #1f883d;
+  --warn: #9a6700;
+  --danger: #cf222e;
+  --done: #8250df;
+  --neutral: #6e7781;
+
+  /* Tints (labels, banners) */
+  --link-tint: #ddf4ff;
+  --success-tint: #dafbe1;
+  --warn-tint: #fff8c5;
+  --danger-tint: #ffebe9;
+
+  /* Diff view (projector- and colorblind-safe; always pair with +/- glyphs) */
+  --diff-add-line: #e6ffec;
+  --diff-add-word: #abf2bc;
+  --diff-del-line: #ffebe9;
+  --diff-del-word: #ffc1bc;
+  --diff-hunk: #ddf4ff;
 }
 
+.dark {
+  /* Surfaces */
+  --canvas: #0d1117;
+  --inset: #010409;
+  --subtle: #161b22;
+  --overlay: #161b22;
+  --hover: rgb(110 118 129 / 0.1);
+
+  /* Text */
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --faint: #6e7681;
+
+  /* Borders */
+  --line: #30363d;
+  --line-muted: #21262d;
+
+  /* Semantic states */
+  --link: #58a6ff;
+  --success: #3fb950;
+  --btn-primary: #238636;
+  --warn: #d29922;
+  --danger: #f85149;
+  --done: #a371f7;
+  --neutral: #6e7681;
+
+  /* Tints */
+  --link-tint: rgb(56 139 253 / 0.15);
+  --success-tint: rgb(46 160 67 / 0.15);
+  --warn-tint: rgb(187 128 9 / 0.15);
+  --danger-tint: rgb(248 81 73 / 0.15);
+
+  /* Diff view */
+  --diff-add-line: rgb(46 160 67 / 0.15);
+  --diff-add-word: rgb(63 185 80 / 0.4);
+  --diff-del-line: rgb(248 81 73 / 0.15);
+  --diff-del-word: rgb(248 81 73 / 0.4);
+  --diff-hunk: rgb(56 139 253 / 0.1);
+}
+
+/* ============================================================
+   @theme inline — generates utilities from tokens above.
+   Usage: bg-canvas · text-ink · text-muted · border-line
+          bg-btn-primary · text-success · bg-success-tint ...
+   Language-bar brand colors are static (same in both modes).
+   ============================================================ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-canvas: var(--canvas);
+  --color-inset: var(--inset);
+  --color-subtle: var(--subtle);
+  --color-overlay: var(--overlay);
+  --color-hover: var(--hover);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-line: var(--line);
+  --color-line-muted: var(--line-muted);
+
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-btn-primary: var(--btn-primary);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-done: var(--done);
+  --color-neutral: var(--neutral);
+
+  --color-link-tint: var(--link-tint);
+  --color-success-tint: var(--success-tint);
+  --color-warn-tint: var(--warn-tint);
+  --color-danger-tint: var(--danger-tint);
+
+  --color-diff-add-line: var(--diff-add-line);
+  --color-diff-add-word: var(--diff-add-word);
+  --color-diff-del-line: var(--diff-del-line);
+  --color-diff-del-word: var(--diff-del-word);
+  --color-diff-hunk: var(--diff-hunk);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Simple animations — Tailwind handles these.
+     GSAP/ScrollTrigger is reserved for scroll-driven & staggered choreography
+     (see design.md §4). */
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-slide-up: slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-live-dot: live-dot 2s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes live-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
 }
 
+/* Fixed brand colors — GitHub Linguist language bar (design.md §2). Never themed. */
+@theme {
+  --color-lang-ts: #3178c6;
+  --color-lang-js: #f1e05a;
+  --color-lang-py: #3572a5;
+  --color-lang-java: #b07219;
+  --color-lang-sql: #e38c00;
+  --color-lang-other: #8b949e;
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--link-tint);
+}
+
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
