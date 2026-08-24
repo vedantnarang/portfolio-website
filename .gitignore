@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# planning docs & local tooling
+/PLAN.md
+/portfolio-spec.md
+/skills
