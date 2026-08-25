@@ -1,6 +1,6 @@
----
+﻿---
 id: 3
-title: "AI Study Buddy — multimodal pipeline"
+title: "AI Study Buddy â€” multimodal pipeline"
 state: merged
 branch: study-buddy
 labels: [ai, backend, frontend]
@@ -13,8 +13,38 @@ openedAt: 2025-08-20
 mergedAt: 2025-11-02
 ---
 
-# Problem
+## Problem
 
-> **Content gate:** full body (Problem → Approach → Tradeoffs → What I'd do
-> differently → Review thread) due at end of Phase 3. This stub validates the
-> frontmatter schema.
+Students study from messy inputs â€” photographed handwritten notes, PDFs, diagrams â€” and
+want flashcards, quizzes, and summaries out the other side. Vision-capable models on
+free tiers are exactly that: free, capable, and unreliable under rate limits.
+
+## Approach
+
+A multimodal pipeline with degradation as a first-class behavior. Uploads go to
+Cloudinary; public URLs feed a **three-model fallback chain** over OpenRouter's
+vision-capable models. If the primary model rate-limits or times out, the next takes
+the request â€” extraction quality degrades gracefully instead of the feature failing.
+Extracted text becomes structured study material (flashcards/quizzes/summaries)
+persisted in MongoDB.
+
+The interesting engineering is in the fallback semantics: what counts as "retry-worthy"
+versus "give up", how partial extractions surface to users honestly, and keeping the
+chain config-driven so models swap without touching pipeline code.
+
+## Tradeoffs
+
+- **Free model chain vs one paid model** â€” zero cost and real redundancy at the price
+  of inconsistent output formats across providers. Normalization code pays that bill
+  forever; see [#11](/issues/11), where I argue for collapsing it into a single paid
+  model plus an explicit retry budget.
+- **Server-side extraction vs client-side** â€” extraction needs the image bytes anyway,
+  so doing it server-side keeps provider traffic (and keys) off the client entirely.
+
+## What I'd do differently
+
+I'd add streaming progress earlier â€” long extractions currently feel like silence.
+And the fallback chain deserves contract fixtures per provider; a model changing its
+JSON shape was found by a user, not a test.
+
+*Full case study lands with the Phase 3 content pass.*

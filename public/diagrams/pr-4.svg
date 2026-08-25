@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="'JetBrains Mono',ui-monospace,monospace">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#818b98"/>
+    </marker>
+  </defs>
+
+  <rect width="960" height="540" fill="#f6f8fa"/>
+  <rect x="1" y="1" width="958" height="538" fill="#f6f8fa" stroke="#d0d7de"/>
+
+  <text x="24" y="36" font-size="17" font-weight="bold" fill="#1f2328">flickstat.com — data platform</text>
+  <text x="24" y="58" font-size="12" fill="#656d76">471,884 event rows · ~1,800 canonical players · ~3,400 ID bridges · 96.7% WC squads matched, 0 wrong matches</text>
+
+  <!-- Row A -->
+  <g>
+    <rect x="24" y="92" width="200" height="128" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="124" y="114" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2328">data providers</text>
+    <text x="44" y="138" font-size="11.5" fill="#656d76">• Transfermarkt</text>
+    <text x="44" y="156" font-size="11.5" fill="#656d76">• WhoScored (UC mode)</text>
+    <text x="44" y="174" font-size="11.5" fill="#656d76">• Understat</text>
+    <text x="44" y="192" font-size="11.5" fill="#656d76">• BSD API + live WS</text>
+    <text x="44" y="210" font-size="10.5" fill="#818b98">Playwright / SeleniumBase</text>
+  </g>
+
+  <line x1="224" y1="156" x2="262" y2="156" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="266" y="112" width="220" height="88" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="376" y="140" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2328">raw_* tables (Postgres)</text>
+    <text x="286" y="162" font-size="11.5" fill="#656d76">untouched · provider IDs only</text>
+    <text x="286" y="180" font-size="11.5" fill="#656d76">idempotent upserts, natural keys</text>
+  </g>
+
+  <line x1="486" y1="156" x2="524" y2="156" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="528" y="102" width="230" height="108" rx="10" fill="#ffffff" stroke="#8250df" stroke-width="2"/>
+    <text x="643" y="130" text-anchor="middle" font-size="14" font-weight="bold" fill="#8250df">identity resolver</text>
+    <text x="548" y="152" font-size="11.5" fill="#656d76">7-stage cascade, stops at first hit</text>
+    <text x="548" y="170" font-size="11.5" fill="#656d76">rapidfuzz within gated spaces</text>
+    <text x="548" y="188" font-size="11.5" fill="#656d76">every match records its method</text>
+  </g>
+
+  <!-- elbow: resolver -> canonical -->
+  <path d="M 758 156 L 890 156 L 890 236 L 430 236 L 430 292"
+        fill="none" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Row B -->
+  <g>
+    <rect x="266" y="296" width="220" height="96" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="376" y="322" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2328">canonical layer</text>
+    <text x="286" y="344" font-size="11.5" fill="#656d76">players · teams · matches</text>
+    <text x="286" y="362" font-size="11.5" fill="#656d76">+ provider bridge tables</text>
+    <text x="286" y="380" font-size="10.5" fill="#818b98">aliases hand-seeded for nicknames</text>
+  </g>
+
+  <line x1="486" y1="344" x2="524" y2="344" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="528" y="296" width="230" height="96" rx="10" fill="#ffffff" stroke="#1a7f37" stroke-width="2"/>
+    <text x="643" y="322" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a7f37">~14 SQL RPCs</text>
+    <text x="548" y="344" font-size="11.5" fill="#656d76">STABLE · SECURITY DEFINER</text>
+    <text x="548" y="362" font-size="11.5" fill="#656d76">aggregation in one table scan</text>
+    <text x="548" y="380" font-size="10.5" fill="#818b98">RLS-locked raw tables stay closed</text>
+  </g>
+
+  <line x1="758" y1="344" x2="796" y2="344" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="800" y="296" width="136" height="96" rx="10" fill="#ffffff" stroke="#0969da" stroke-width="2"/>
+    <text x="868" y="330" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#0969da">Next.js app</text>
+    <text x="868" y="352" text-anchor="middle" font-size="11.5" fill="#656d76">ISR + tag</text>
+    <text x="868" y="368" text-anchor="middle" font-size="11.5" fill="#656d76">revalidation</text>
+  </g>
+
+  <!-- Bottom band -->
+  <rect x="24" y="446" width="420" height="66" rx="10" fill="#fff8c5" stroke="#d0d7de" stroke-width="1.5"/>
+  <text x="42" y="470" font-size="12.5" font-weight="bold" fill="#9a6700">GitHub Actions cron pipeline</text>
+  <text x="42" y="490" font-size="11" fill="#656d76">idempotent · incremental · high-water marks from data</text>
+
+  <rect x="470" y="446" width="466" height="66" rx="10" fill="#fff8c5" stroke="#d0d7de" stroke-width="1.5"/>
+  <text x="488" y="470" font-size="12.5" font-weight="bold" fill="#9a6700">live asyncio WebSocket relay</text>
+  <text x="488" y="490" font-size="11" fill="#656d76">self-healing reconnect · REST clock refresh · write gate</text>
+
+  <text x="24" y="532" font-size="10.5" fill="#818b98">scrapers never resolve identity · the resolver never scrapes · every stage re-runnable</text>
+</svg>

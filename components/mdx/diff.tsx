@@ -30,6 +30,7 @@ interface Line {
 function parseLines(raw: string): Line[] {
   return raw
     .replace(/\r\n/g, "\n")
+    .replace(/^\n+/, "")
     .replace(/\n$/, "")
     .split("\n")
     .map((line) => {

@@ -1,6 +1,6 @@
----
+﻿---
 id: 5
-title: "AI image generation SaaS — Square Yards"
+title: "AI image generation SaaS â€” Square Yards"
 state: open
 branch: ai-image-saas
 labels: [ai, backend, infra]
@@ -11,8 +11,44 @@ deletions: 921
 openedAt: 2026-07-01
 ---
 
-# Problem
+## Problem
 
-> **Content gate:** exemplar body (Problem → Approach → Tradeoffs → What I'd do
-> differently → Review thread) due before Phase 2 starts. This stub validates the
-> frontmatter schema.
+Interior-design workflows at Square Yards needed production AI image generation:
+designers and marketing teams iterate on room visuals, and the existing manual loop
+was slow and inconsistent across teams. The platform had to wrap third-party
+image-generation APIs behind one internal surface with predictable auth, cost
+behavior, and delivery speed â€” on a SaaS stack built on Next.js and Node.js.
+
+## Approach
+
+A thin internal service layer over multiple generation providers: authenticated Next.js
+API routes validate sessions before any outbound call; a security layer for outbound AI
+API traffic keeps provider keys server-side and request-shapes validated at the edge;
+generated assets flow into a CDN-backed delivery pipeline instead of serving blobs from
+app servers. Frontend work ships from Figma specs with pixel-accurate handoff.
+
+## Tradeoffs
+
+- **Wrapping providers vs building generation in-house** â€” wrapping absorbs model churn
+  (swap providers behind one interface) but accepts per-call vendor pricing and rate
+  ceilings. At this scale, wrap wins on both cost of change and time-to-value.
+- **Security boundary placement** â€” keys live only server-side and every outbound call
+  passes one choke point. It costs a hop per request; it removes an entire class of
+  leaked-credential incidents.
+- **CDN-first asset delivery** â€” regeneration is expensive, so generated images are
+  immutable and cacheable. Staleness is handled by content-addressed URLs, not cache
+  invalidation.
+
+## What I'd do differently
+
+Generation currently runs synchronously within a request's lifetime. A queue with
+webhook completion would decouple user-perceived latency from provider latency and make
+retries boring â€” that refactor is the next thing I'd reach for if volume grows.
+
+<Review author="reviewer" q="Why not queue generation from day one?">
+Honest scope call: the first internal users needed proof of value more than they needed
+elasticity. Sync kept the architecture reviewable in an afternoon. The queue is designed
+for â€” this PR stays open until it lands.
+</Review>
+
+*Employer project â€” shared at system level by design; no proprietary code appears here.*

@@ -1,6 +1,6 @@
----
+﻿---
 id: 1
-title: "ERP workflow validation — Grant Thornton"
+title: "ERP workflow validation â€” Grant Thornton"
 state: merged
 branch: erp-validation
 labels: [backend, infra]
@@ -12,8 +12,36 @@ openedAt: 2025-06-02
 mergedAt: 2025-08-29
 ---
 
-# Problem
+## Problem
 
-> **Content gate:** full body (Problem → Approach → Tradeoffs → What I'd do
-> differently → Review thread) due at end of Phase 3. This stub validates the
-> frontmatter schema.
+During rollout of the firm's ERP platform (WCGT360), end-to-end workflows â€” chargeable
+and non-chargeable jobs, timesheet entries, approvals, expense reporting â€” had to be
+validated for 100+ internal users before they touched production data. A second, quieter
+risk sat between systems: client-onboarding data flowing into Salesforce-based tools
+depended on cross-system assumptions nobody had written down.
+
+## Approach
+
+Structured validation passes over each workflow family, treating the ERP as a black box
+under test: scripted happy paths, then boundary conditions (locked periods, partial
+approvals, rejected expenses). In parallel I mapped cross-system dependencies between
+WCGT360 and the Salesforce onboarding chain â€” which fields flow where, and what breaks
+when either side changes shape â€” reducing onboarding friction caused by silent
+assumptions.
+
+## Tradeoffs
+
+- **Manual regression depth vs automation** â€” the internship window favored broad
+  manual coverage of real workflows over a thin automated suite. Honest call at the
+  time; automation is what I'd reach for first now.
+- **Read-only constraints** â€” validation ran without write access to production-like
+  data, so test design leaned on staging replicas and explicit data setup rather than
+  exploratory mutation.
+
+## What I'd do differently
+
+I'd build the golden-path regression suite first and let manual passes explore around
+it, and I'd ship a small field-mapping diff tool for the WCGT360â†”Salesforce boundary â€”
+half the findings were just drift between two systems' truths.
+
+*Employer project â€” no internal code is shown here by policy.*

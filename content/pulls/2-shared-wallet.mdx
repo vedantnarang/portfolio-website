@@ -1,6 +1,6 @@
----
+﻿---
 id: 2
-title: "Shared Wallet — 2D ledger settlement"
+title: "Shared Wallet â€” 2D ledger settlement"
 state: merged
 branch: shared-wallet
 labels: [backend, data]
@@ -13,8 +13,36 @@ openedAt: 2025-04-11
 mergedAt: 2025-06-14
 ---
 
-# Problem
+## Problem
 
-> **Content gate:** full body (Problem → Approach → Tradeoffs → What I'd do
-> differently → Review thread) due at end of Phase 3. This stub validates the
-> frontmatter schema.
+Group expense splitting ends in the same mess every trip: pairwise IOUs multiply, and
+"who owes whom" becomes unreconstructable. Naive Splitwise-style tracking stores debts
+per pair; settling up fairly across a group of six means either trusting an app's black
+box or doing graph math by hand.
+
+## Approach
+
+A **2D ledger model**: every expense writes ledger rows against canonical group members,
+and settlement is computed as net positions rather than stored pairwise debt â€” the data
+model resolves debts deterministically instead of accumulating them. Real-time state
+syncs through Convex (conflict handling and multi-user updates handled by the platform's
+transactional model rather than hand-rolled locking), with Clerk for identity.
+
+The part worth reading in the codebase is the settlement derivation: how netting
+interacts with partial payments, and why the ledger stays append-only so any balance
+can be recomputed from history.
+
+## Tradeoffs
+
+- **Convex vs Postgres + WebSockets** â€” Convex collapsed sync/concurrency work to
+  days at the cost of platform coupling. Right call for a weekend-scale product;
+  wrong call for anything where query flexibility matters more than time-to-ship.
+- **Compute-on-read balances vs materialized balances** â€” recomputing from the ledger
+  is slower per view but impossible to drift from truth; correctness beat caching here.
+
+## What I'd do differently
+
+Settlement suggestions should batch on a window ("settle weekly") instead of firing on
+every expense â€” churny micro-suggestions made the UX noisier than the problem deserved.
+
+*Full case study lands with the Phase 3 content pass.*

@@ -1,6 +1,6 @@
----
+﻿---
 id: 4
-title: "Flickstat — football analytics platform"
+title: "Flickstat â€” football analytics platform"
 state: merged
 branch: flickstat
 labels: [backend, data, frontend]
@@ -14,8 +14,158 @@ openedAt: 2025-10-05
 mergedAt: 2026-01-18
 ---
 
-# Problem
+## Problem
 
-> **Content gate:** full body (Problem → Approach → Tradeoffs → What I'd do
-> differently → Review thread) due at end of Phase 3. This stub validates the
-> frontmatter schema.
+Four data providers cover world football â€” Transfermarkt, WhoScored, Understat, BSD â€”
+and none of them agree on who a player *is*. Transfermarkt says `HÃ©ctor BellerÃ­n`,
+WhoScored says `Hector Bellerin`, Understat says `Bellerin`, and no two share an ID.
+Every analytics feature I wanted to build (xG leaders, defensive workhorses, live
+World Cup coverage) dies at exactly this point: you cannot join what you cannot identify.
+
+The constraints that shaped everything else:
+
+- **A wrong match is worse than no match.** Attaching one player's stats to another
+  silently corrupts every number downstream, and nothing on the read path can detect it.
+- The pipeline runs **unattended on cron** during a live tournament â€” 3am failures
+  must self-heal or wait, not page me.
+- 471k event rows means aggregation belongs **in Postgres**, not in request handlers.
+
+## Approach
+
+Strict layering, each stage re-runnable in isolation:
+
+**Scrapers write raw rows and never resolve identity.** Four independent provider
+ingesters (Playwright / SeleniumBase in UC mode for the Cloudflare-fronted one) land
+data in untouched `raw_*` tables keyed by deterministic natural keys, so any script
+can be killed mid-run and re-run safely via `upsert â€¦ on_conflict`.
+
+**An in-memory resolver owns identity.** A seven-stage matching cascade stops at the
+first hit â€” exact name + DOB, seeded aliases, exact name, DOB disambiguation, token
+subsets ("Bruno Fernandes" âŠ‚ "Bruno Miguel Borges Fernandes"), then fuzzy scoring
+*only within hard-gated candidate spaces* (same DOB, or the resolved team's 26-man
+squad â€” a ~50Ã— reduction that makes thresholds safe). Every match records *how* it was
+made; a spike in `fuzzy+name` matches is an audit signal that something upstream moved.
+
+Two functions carry most of the subtlety. First, normalization â€” where the trap is
+that Unicode NFKD **doesn't** decompose `Ã¸`, `ÃŸ`, `Ä±`, and a naive ASCII fold silently
+deletes them (`Ã‡akÄ±r` â†’ `Cakr`):
+
+<Diff file="backend/utils/helpers.py" lang="python" additions={9} deletions={3}>
+{`
+@@ def normalize_name â€” before/after the transliteration fix
+-def normalize_name(name):
+-    text = unicodedata.normalize("NFKD", name.lower())
+-    return "".join(ch for ch in text if not unicodedata.combining(ch))
++def normalize_name(name: str) -> str:
++    if not name:
++        return ""
++    text = name.lower()
++    # NFKD does NOT decompose these â€” map them first, or ascii-fold
++    # deletes them outright ("Ã‡akÄ±r" -> "Cakr") and a solvable match dies.
++    text = text.replace("Ã¸", "o").replace("ÃŸ", "ss").replace("Ä±", "i")
++    text = unicodedata.normalize("NFKD", text)
++    text = "".join(ch for ch in text if not unicodedata.combining(ch))
++    text = re.sub(r"[^a-z0-9\\s]", "", re.sub(r"\\s+", " ", text.replace("-", " ")))
++    return text.strip()
+`}
+</Diff>
+
+Second, discovery ranking. Picking World Cup squads off WhoScored meant choosing the
+right row from a name-search results table 1,320 times. Highest-name-score-wins
+attached a 25-year-old Cruzeiro "Matheus Cunha"'s stats to the 27-year-old
+international â€” so ranking became corroboration-first with a hard age veto:
+
+<Diff file="backend/wc/scrapers/whoscored_profiles.py" lang="python" additions={11} deletions={2}>
+{`
+@@ _rank â€” from "best name wins" to corroboration-first with a veto
+-    rows.sort(key=lambda r: r["name_score"], reverse=True)
+-    return rows
++    # The NO-WRONG-DATA gate: strong name necessary but never sufficient.
++    for r in rows:
++        r["age_ok"] = (r["age"] is None or tm_age is None
++                       or abs(r["age"] - tm_age) <= AGE_TOLERANCE)
++        r["age_match"] = (r["age"] is not None and tm_age is not None
++                          and abs(r["age"] - tm_age) <= AGE_TOLERANCE)
++        r["acceptable"] = (r["name_score"] >= NAME_SCORE_ACCEPT and r["age_ok"]
++                           and (r["nat_ok"] or r["age_match"]))
++
++    # acceptable first, corroborated second, raw score only third.
++    # A known age conflict is a VETO â€” same-name impostors can't win.
++    rows.sort(key=lambda r: (r["acceptable"],
++                             r["nat_ok"] or r["age_match"],
++                             r["name_score"]),
++              reverse=True)
++    return rows
+`}
+</Diff>
+
+Result across both problems: 1,277/1,320 World Cup squad slots matched (96.7%) with
+**zero wrong matches**, verified by an independent DOB-audit query run after every
+batch â€” deliberately separate logic from the matcher itself. That audit caught four
+wrong matches the prevention layer had already let through.
+
+Serving reads goes through ~14 `STABLE` SQL RPCs â€” e.g. defensive-workhorse
+breakdowns aggregate 471k events with `COUNT(*) FILTER` clauses in one scan, exposed
+via `SECURITY DEFINER` with pinned `search_path` so the RLS-locked raw tables stay
+closed while one curated query stays open. Live tournament scores ride a long-lived
+asyncio WebSocket relay with reconnect loops and a write gate that drops frames for
+non-tournament events.
+
+## Tradeoffs
+
+- **Raw tables stay untouched and unnormalized.** Storage cost is real (~470k rows Ã—
+  providers), but re-processing history after a resolver bug costs a scripted re-run
+  instead of a 12-hour re-scrape. I'd make this trade again.
+- **Identity matching lives in Python, not SQL.** `pg_trgm` could do the fuzzy part,
+  but the cascade's value is its *ordering* â€” cheap exact passes first, fuzzy last,
+  uniqueness gates on every fallback â€” plus per-match method labels for auditing.
+  In-memory over tiny candidate spaces made round-tripping to the database pure loss.
+- **`SECURITY DEFINER` is a loaded gun.** One function with a stale `search_path`
+  becomes an accidental public API. It's the right call for RLS-locked analytics, but
+  it demands review discipline I now apply everywhere: pin the path, keep the function
+  read-only, expose nothing table-shaped.
+- **Free scraping sits behind anti-bot walls.** SeleniumBase UC mode works today;
+  a selector or challenge change breaks ingestion without warning. I accepted that
+  operational risk rather than pay for official feeds at zero revenue.
+
+## What I'd do differently
+
+The DOB audit should have existed **before** the first fuzzy match shipped, not after
+the impostor incident â€” verification logic designed alongside prevention would have
+caught those four bad rows a week earlier. Alias seeding (`Savinhoâ†”SÃ¡vio`,
+mononyms like `Bono`) grew into hand-edited SQL; even a crude admin form would have
+paid for itself by World Cup knockout stages. And knockout resolution produced three
+separate production bugs from one root cause: deciding winners from the stored
+scoreline while ignoring that extra time and shootouts are stored *level by design* â€”
+the priority order (ET first, then pens, then refuse-to-guess) now lives in exactly
+one function, which is where it should have started.
+
+<Review author="reviewer" q="Why not pg_trgm similarity in SQL instead of rapidfuzz in memory?">
+Because the cascade's job isn't scoring â€” it's *candidate control*. By the time fuzz
+runs, the space is already cut to same-DOB players or one 26-man squad, so we're
+comparing dozens of strings, not millions. Moving it into SQL buys nothing there and
+costs the per-match method labels that make runs auditable.
+</Review>
+
+<Review author="reviewer" q="Idempotent upserts are claimed â€” but what happens if two runs overlap?">
+They can't: GitHub Actions concurrency groups ensure one pipeline at a time, and every
+write targets a deterministic key (`game_id_idx`, derived from `{game_id}_{idx}` at
+write time) with `on_conflict`. The high-water marks are derived from the data itself â€” newest
+row with a real player attached, not a naive MAX(date), because future fixtures get
+inserted early as placeholders and would stall every later run.
+</Review>
+
+<Review author="reviewer" q="Half of these 'guards' look like paranoia. Which one earned its keep?">
+The completeness gate, easily. If the scraper fires while a match is live, WhoScored
+serves only events so far â€” persisting that poisons the DB *silently*, because the
+resume check sees the match as done and skips it forever. Rejecting anything under 90
+minutes without a PostGame period looks overly cautious until it's the difference
+between a half-match and a retry that fixes itself on the next run.
+</Review>
+
+<Review author="vedantnarang">
+Self-review note: the resolver file is the one I'd rewrite tomorrow â€” find_match grew
+into a 150-line function doing seven jobs. The stage ordering is correct and tested,
+but each stage deserves its own named predicate so the cascade reads like a table of
+contents instead of a novel.
+</Review>

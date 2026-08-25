@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="'JetBrains Mono',ui-monospace,monospace">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#818b98"/>
+    </marker>
+  </defs>
+
+  <rect width="960" height="540" fill="#f6f8fa"/>
+  <rect x="1" y="1" width="958" height="538" fill="#f6f8fa" stroke="#d0d7de"/>
+
+  <text x="24" y="36" font-size="17" font-weight="bold" fill="#1f2328">Square Yards — AI image-generation SaaS</text>
+  <text x="24" y="58" font-size="12" fill="#656d76">system-level view · shared by design, no proprietary code</text>
+
+  <!-- Generation path -->
+  <g>
+    <rect x="24" y="104" width="180" height="96" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="114" y="138" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#1f2328">design + marketing</text>
+    <text x="114" y="158" text-anchor="middle" font-size="11.5" fill="#656d76">interior-design</text>
+    <text x="114" y="174" text-anchor="middle" font-size="11.5" fill="#656d76">workflows</text>
+  </g>
+
+  <line x1="204" y1="152" x2="242" y2="152" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="246" y="104" width="190" height="96" rx="10" fill="#ffffff" stroke="#0969da" stroke-width="2"/>
+    <text x="341" y="132" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#0969da">Next.js platform</text>
+    <text x="341" y="154" text-anchor="middle" font-size="11.5" fill="#656d76">Figma-pixel UI handoff</text>
+    <text x="341" y="172" text-anchor="middle" font-size="11.5" fill="#656d76">authenticated API routes</text>
+  </g>
+
+  <line x1="436" y1="152" x2="474" y2="152" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="478" y="104" width="210" height="96" rx="10" fill="#ffffff" stroke="#cf222e" stroke-width="2"/>
+    <text x="583" y="132" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#cf222e">outbound choke point</text>
+    <text x="583" y="154" text-anchor="middle" font-size="11.5" fill="#656d76">provider keys server-side only</text>
+    <text x="583" y="172" text-anchor="middle" font-size="11.5" fill="#656d76">validated request shapes</text>
+  </g>
+
+  <line x1="688" y1="152" x2="726" y2="152" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="730" y="86" width="206" height="132" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="833" y="112" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#1f2328">generation providers</text>
+    <text x="750" y="136" font-size="11.5" fill="#656d76">• provider A — primary</text>
+    <text x="750" y="156" font-size="11.5" fill="#656d76">• provider B — alt model</text>
+    <text x="750" y="176" font-size="11.5" fill="#656d76">• provider C — specialty</text>
+    <text x="750" y="200" font-size="10.5" fill="#818b98">swappable behind one interface</text>
+  </g>
+
+  <!-- Asset return path -->
+  <path d="M 833 218 L 833 300 L 700 300" fill="none" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="752" y="290" font-size="11" fill="#656d76">generated assets</text>
+
+  <g>
+    <rect x="500" y="264" width="196" height="72" rx="10" fill="#ffffff" stroke="#1a7f37" stroke-width="2"/>
+    <text x="598" y="292" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#1a7f37">asset store → CDN</text>
+    <text x="598" y="316" text-anchor="middle" font-size="11.5" fill="#656d76">immutable · content-addressed</text>
+  </g>
+
+  <path d="M 500 300 L 341 300 L 341 204" fill="none" stroke="#818b98" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Tradeoff band -->
+  <rect x="24" y="396" width="912" height="112" rx="10" fill="#ddf4ff" stroke="#d0d7de" stroke-width="1.5"/>
+  <text x="42" y="422" font-size="12.5" font-weight="bold" fill="#0969da">deliberate calls in this design</text>
+  <text x="42" y="446" font-size="11.5" fill="#656d76">wrap-don't-build: provider churn absorbed behind one interface · vendor pricing accepted per call</text>
+  <text x="42" y="468" font-size="11.5" fill="#656d76">sync generation today; queue + webhook completion is the designed next step (PR stays open for it)</text>
+  <text x="42" y="492" font-size="10.5" fill="#818b98">one security hop per request buys away an entire class of leaked-credential incidents</text>
+</svg>
