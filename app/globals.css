@@ -187,6 +187,15 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Shiki dual-theme bridge (lib/shiki.ts emits --shiki-light/dark vars
+   with defaultColor:false). Class-based mode swaps the active color. */
+._st {
+  color: var(--shiki-light);
+}
+.dark ._st {
+  color: var(--shiki-dark);
+}
+
 ::selection {
   background-color: var(--link-tint);
 }
