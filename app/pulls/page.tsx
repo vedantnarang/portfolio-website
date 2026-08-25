@@ -1,45 +1,57 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PageShell } from "@/components/page-shell";
+import { PullListRow } from "@/components/pulls/list-row";
+import { FilterChips } from "@/components/pulls/filter-chips";
 import { getAllPullRequests } from "@/lib/content";
 import { GitPullRequestIcon } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "Pull requests",
-  description:
-    "Projects and work, presented as pull requests. Detail views ship next.",
+  description: "Projects and work, presented as pull requests.",
 };
 
-/* Phase 1 stub — proves the content pipeline end-to-end with real loader
-   data; Phase 2 replaces this with the full PR list (state icons, filter
-   chips, label pills) and /pull/[id]. */
-export default async function PullsPage() {
-  const prs = await getAllPullRequests();
+/* Reading searchParams opts this route into request rendering — the
+   documented tradeoff for shareable filter links (PLAN Phase 2 §7.4/risk
+   table). Everything else on the site stays fully static. */
+export default async function PullsPage({
+  searchParams,
+}: PageProps<"/pulls">) {
+  const { label } = await searchParams;
+  const all = await getAllPullRequests();
+  const prs =
+    typeof label === "string"
+      ? all.filter((pr) => pr.labels.some((l) => l.name === label))
+      : all;
 
   return (
     <PageShell>
       <main className="py-6">
         <h1 className="sr-only">Pull requests</h1>
+
         <div className="overflow-hidden rounded-md border border-line">
-          <div className="flex items-center gap-2 border-b border-line-muted bg-subtle px-4 py-2.5 text-sm font-semibold">
-            <GitPullRequestIcon />
-            {prs.length} pull requests
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-muted bg-subtle px-4 py-2.5">
+            <Suspense fallback={<div className="h-7" />}>
+              <FilterChips />
+            </Suspense>
+            <p className="flex items-center gap-2 text-sm font-medium text-muted">
+              <GitPullRequestIcon />
+              {prs.length} of {all.length}
+            </p>
           </div>
-          <ul className="divide-y divide-line-muted">
-            {prs.map((pr) => (
-              <li
-                key={pr.id}
-                className="flex items-baseline gap-3 px-4 py-3 transition-colors duration-150 hover:bg-hover"
-              >
-                <span className="text-sm text-muted">#{pr.id}</span>
-                <span className="min-w-0 truncate text-sm font-semibold">
-                  {pr.title}
-                </span>
-                <span className="ml-auto shrink-0 rounded-full bg-hover px-2 py-0.5 text-xs text-muted">
-                  {pr.state}
-                </span>
-              </li>
-            ))}
-          </ul>
+
+          {prs.length > 0 ? (
+            <ul className="divide-y divide-line-muted">
+              {prs.map((pr) => (
+                <PullListRow key={pr.id} pr={pr} />
+              ))}
+            </ul>
+          ) : (
+            <p className="px-4 py-16 text-center text-sm text-muted">
+              No pull requests labeled{" "}
+              <span className="font-mono">{label}</span>.
+            </p>
+          )}
         </div>
       </main>
     </PageShell>

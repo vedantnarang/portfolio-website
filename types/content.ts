@@ -33,6 +33,7 @@ export interface PullRequest {
   liveUrl?: string;
   repoUrl?: string;
   lastChecked?: string;
+  openedAt?: string;
   mergedAt?: string;
   body: MDXContent;
 }

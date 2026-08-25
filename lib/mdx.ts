@@ -113,6 +113,7 @@ export interface PullFrontmatter {
   liveUrl?: string;
   repoUrl?: string;
   lastChecked?: string;
+  openedAt?: string;
   mergedAt?: string;
 }
 
@@ -139,6 +140,7 @@ export function validatePullFrontmatter(data: Data, fileId: number): PullFrontma
     liveUrl: optString(data, "liveUrl"),
     repoUrl: optString(data, "repoUrl"),
     lastChecked: optString(data, "lastChecked"),
+    openedAt: optString(data, "openedAt"),
     mergedAt: optString(data, "mergedAt"),
   };
 }

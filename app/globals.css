@@ -27,6 +27,7 @@
 
   /* Semantic states */
   --link: #0969da;
+  --accent-emphasis: #0969da;
   --success: #1a7f37;
   --btn-primary: #1f883d;
   --warn: #9a6700;
@@ -67,6 +68,7 @@
 
   /* Semantic states */
   --link: #58a6ff;
+  --accent-emphasis: #1f6feb;
   --success: #3fb950;
   --btn-primary: #238636;
   --warn: #d29922;
@@ -109,6 +111,7 @@
   --color-line-muted: var(--line-muted);
 
   --color-link: var(--link);
+  --color-accent-emphasis: var(--accent-emphasis);
   --color-success: var(--success);
   --color-btn-primary: var(--btn-primary);
   --color-warn: var(--warn);

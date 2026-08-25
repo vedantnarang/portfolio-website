@@ -36,6 +36,8 @@ export function RelativeTime({
   date: string;
   className?: string;
 }) {
+  const parsed = new Date(date).getTime();
+  if (!date || Number.isNaN(parsed)) return null;
   return (
     <time dateTime={date} className={className}>
       {formatRelativeTime(date)}
