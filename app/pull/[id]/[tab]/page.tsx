@@ -6,7 +6,10 @@ import { PageShell } from "@/components/page-shell";
 import { Prose } from "@/components/prose";
 import { DetailHeader } from "@/components/pulls/detail-header";
 import { PrTabs, type PrTabKey } from "@/components/pulls/tabs";
-import { getAllPullRequests } from "@/lib/content";
+import { ChecksPanel } from "@/components/pulls/checks-panel";
+import { Diagram } from "@/components/mdx/diagram";
+import { Diff } from "@/components/mdx/diff";
+import { getAllPullRequests, getPullDiffBlocks } from "@/lib/content";
 
 const TAB_KEYS: PrTabKey[] = [
   "conversation",
@@ -111,17 +114,89 @@ export default async function PullDetailPage({
           )}
 
           {tab === "architecture" && (
-            <Placeholder label="Architecture diagram lands in Part 4 of this phase." />
+            <ArchitecturePanel prId={pr.id} title={pr.title} />
           )}
-          {tab === "checks" && (
-            <Placeholder label="Checks panel lands in Part 4 of this phase." />
-          )}
-          {tab === "files" && (
-            <Placeholder label="Aggregated diffs land in Part 4 of this phase." />
-          )}
+
+          {tab === "checks" && <ChecksPanel pr={pr} />}
+
+          {tab === "files" && <FilesChanged prId={pr.id} />}
         </div>
       </main>
     </PageShell>
+  );
+}
+
+function ArchitecturePanel({ prId, title }: { prId: number; title: string }) {
+  const svgPath = path.join(
+    process.cwd(),
+    "public",
+    "diagrams",
+    `pr-${prId}.svg`,
+  );
+  if (!fs.existsSync(svgPath)) {
+    return (
+      <Placeholder label="Diagram ships with this pull request's exemplar content." />
+    );
+  }
+  return (
+    <Diagram
+      id={prId}
+      alt={`Architecture diagram for ${title}`}
+      caption="System-level view — pre-rendered SVG, no client JS."
+    />
+  );
+}
+
+function FilesChanged({ prId }: { prId: number }) {
+  const blocks = getPullDiffBlocks(prId);
+
+  if (blocks.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
+        No diffs published for this pull request yet.
+      </div>
+    );
+  }
+
+  const summary = blocks.reduce(
+    (acc, b) => ({
+      files: acc.files + 1,
+      additions: acc.additions + (b.additions ?? 0),
+      deletions: acc.deletions + (b.deletions ?? 0),
+    }),
+    { files: 0, additions: 0, deletions: 0 },
+  );
+
+  return (
+    <div>
+      <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+        <span>
+          Showing{" "}
+          <span className="font-semibold text-ink">{summary.files}</span>{" "}
+          changed file{summary.files === 1 ? "" : "s"} with real code from this
+          project.
+        </span>
+        <span className="font-mono text-xs">
+          <span className="text-success">
+            +{summary.additions.toLocaleString("en-US")}
+          </span>{" "}
+          <span className="text-danger">
+            {"\u2212"}{summary.deletions.toLocaleString("en-US")}
+          </span>
+        </span>
+      </p>
+      {blocks.map((block) => (
+        <Diff
+          key={block.file}
+          file={block.file}
+          lang={block.lang}
+          additions={block.additions}
+          deletions={block.deletions}
+        >
+          {block.code}
+        </Diff>
+      ))}
+    </div>
   );
 }
 

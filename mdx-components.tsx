@@ -1,6 +1,8 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import { Diff } from "@/components/mdx/diff";
+import { Review } from "@/components/mdx/review";
+import { Diagram } from "@/components/mdx/diagram";
 
 /* Global MDX element mapping = GitHub-markdown styling via design tokens.
    Consumed by every compiled MDX module (readme, pulls, issues later). */
@@ -33,6 +35,8 @@ function Anchor({
 
 const components: MDXComponents = {
   Diff,
+  Review,
+  Diagram,
   h1: ({ children }) => (
     <h1 className="mt-6 mb-4 pb-2 text-2xl font-semibold border-b border-line first:mt-0">
       {children}

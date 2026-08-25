@@ -105,6 +105,49 @@ export async function getPullRequest(id: number): Promise<PullRequest> {
   return pr;
 }
 
+/* ---------- diff blocks (Files changed tab) ---------- */
+
+export interface DiffBlock {
+  file: string;
+  lang: string;
+  additions?: number;
+  deletions?: number;
+  /** Raw code including +/-/@@ classification markers. */
+  code: string;
+}
+
+const DIFF_RE = /<Diff\s+([^>]*?)>\s*\{`([\s\S]*?)`\}\s*<\/Diff>/g;
+
+function strAttr(attrs: string, name: string): string | undefined {
+  const m = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`));
+  return m?.[1];
+}
+
+function numAttr(attrs: string, name: string): number | undefined {
+  const m = attrs.match(new RegExp(`${name}\\s*=\\s*\\{(\\d+)\\}`));
+  return m ? parseInt(m[1], 10) : undefined;
+}
+
+/** Parse <Diff> blocks out of a PR's raw MDX at build time so the
+   Files-changed tab can aggregate them without re-rendering the body. */
+export function getPullDiffBlocks(id: number): DiffBlock[] {
+  const entry = prFiles().find(({ fileId }) => fileId === id);
+  if (!entry) return [];
+  const raw = fs.readFileSync(path.join(PR_DIR, entry.slug + ".mdx"), "utf8");
+  const blocks: DiffBlock[] = [];
+  for (const match of raw.matchAll(DIFF_RE)) {
+    const attrs = match[1];
+    blocks.push({
+      file: strAttr(attrs, "file") ?? "untitled",
+      lang: strAttr(attrs, "lang") ?? "ts",
+      additions: numAttr(attrs, "additions"),
+      deletions: numAttr(attrs, "deletions"),
+      code: match[2],
+    });
+  }
+  return blocks;
+}
+
 /* ---------- readme ---------- */
 
 export interface MDXResult {
