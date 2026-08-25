@@ -66,6 +66,13 @@ function prFiles(): Array<{ slug: string; fileId: number }> {
     });
 }
 
+/** PR ids from filenames — sync, for generateStaticParams. */
+export function getPullIds(): number[] {
+  return prFiles()
+    .map(({ fileId }) => fileId)
+    .sort((a, b) => b - a);
+}
+
 /** Open-first, then id descending (PLAN §4). */
 export async function getAllPullRequests(): Promise<PullRequest[]> {
   const prs = await Promise.all(

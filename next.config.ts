@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
      so MDX never becomes a route itself — pageExtensions is still required
      for @next/mdx compilation. */
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  async redirects() {
+    return [
+      {
+        source: "/pull/:id",
+        destination: "/pull/:id/conversation",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 /* remark-frontmatter teaches the compiler to skip the YAML block instead of
