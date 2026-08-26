@@ -4,4 +4,20 @@ title: "Replace AI Study Buddy's three-model fallback chain with one model and a
 labels: [tech-debt, P2, ai]
 ---
 
-Full body lands with the Phase 3 issues pass (handoff §2, issue #11).
+## Problem
+
+Study Buddy runs uploaded images through a chain of three free vision models, falling through on rate limits. It works, and it was the right call at the time — free-tier limits were unpredictable and a failed upload after eight seconds of waiting is the worst possible user outcome.
+
+But the chain has costs I didn't fully price in. Three models produce three different output shapes, so downstream parsing has three code paths. Quality varies invisibly between them — a user can get a good extraction or a mediocre one with no indication which model answered. And debugging a bad flashcard means working out which model produced it.
+
+## Why change it
+
+The fallback chain solved availability by trading away consistency. With a paid model, availability stops being the problem, and I'd rather have one predictable output shape with a bounded retry budget — three attempts with exponential backoff, then an honest error — than three unpredictable ones.
+
+## Tradeoff I'm accepting
+
+It costs money, and it means the project can no longer be run for free by anyone who clones it. For a portfolio project that's a real loss.
+
+## What I'd keep
+
+The graceful degradation itself. Failing softly with a clear message is right; doing it by silently swapping models is not.

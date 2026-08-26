@@ -4,4 +4,20 @@ title: "Replace raw shot counts with an expected-goals model in Flickstat"
 labels: [enhancement, P1, data]
 ---
 
-Full body lands with the Phase 3 issues pass (handoff §2, issue #12).
+## Problem
+
+Flickstat currently surfaces shot volume, and shot volume is a bad proxy for attacking quality. A player who takes eight speculative efforts from 25 yards reads as more threatening than one who takes three from inside the six-yard box, which is backwards. Anyone who follows football closely will spot this immediately, and it undermines trust in every other number on the page.
+
+## Why it's worth doing
+
+It's the difference between a stats dashboard and an analytics platform. Expected goals is the single metric that most changes how a match reads, and shipping it would make Flickstat genuinely useful rather than merely current.
+
+## Rough approach
+
+Start with a logistic regression over shot location and shot type — distance, angle, body part, whether it followed a set piece. That's a well-understood baseline and it's honest about being a baseline. Whether the current scrape carries shot coordinates is still unverified — if it doesn't, the real blocker here is sourcing the data, not modeling it.
+
+Explicitly not doing: anything involving defensive pressure or possession sequences. The data isn't there and pretending otherwise would produce a confident-looking number that's wrong.
+
+## Open question
+
+Whether to display xG as a headline stat or keep it secondary until it's been sanity-checked against a full season. A wrong xG figure is worse than no xG figure.

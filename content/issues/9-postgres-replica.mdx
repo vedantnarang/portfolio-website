@@ -4,4 +4,18 @@ title: "Self-host a Postgres read replica to learn replication properly"
 labels: [learning, P3, infra]
 ---
 
-Full body lands with the Phase 3 issues pass (handoff §2, issue #9).
+## Problem
+
+I've used Postgres through Supabase, which means I've used it without ever operating it. I can write the queries and design the schema, but I've never configured streaming replication, never watched replica lag climb under load, never handled a failover. In an interview I could describe replication accurately from reading; I couldn't tell you what it feels like when it goes wrong.
+
+## Why it's worth doing
+
+The gap between "knows about" and "has operated" is the main thing separating me from the engineers I want to be working with. Reading about WAL shipping is not the same as having a replica fall behind and having to work out why.
+
+## Rough approach
+
+Two Postgres instances on cheap VPS boxes, streaming replication between them, a load generator pointed at the primary, and Flickstat's read traffic pointed at the replica. Then deliberately break things: kill the primary, saturate the network, fill the disk. Write up what happened.
+
+## Priority is honestly low
+
+This is learning, not user value, and Flickstat's traffic doesn't remotely need a read replica. It's here because I'd rather be explicit that it's a P3 than quietly pretend it's urgent work.
