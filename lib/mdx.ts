@@ -144,3 +144,27 @@ export function validatePullFrontmatter(data: Data, fileId: number): PullFrontma
     mergedAt: optString(data, "mergedAt"),
   };
 }
+
+export interface IssueFrontmatter {
+  id: number;
+  title: string;
+  labels: string[];
+  pinned?: boolean;
+}
+
+/** Validate issue frontmatter; same filename-prefix contract as PRs. */
+export function validateIssueFrontmatter(data: Data, fileId: number): IssueFrontmatter {
+  const id = reqNumber(data, "id");
+  if (!Number.isInteger(id)) throw new Error("frontmatter.id must be an integer");
+  if (id !== fileId) {
+    throw new Error(
+      `frontmatter.id (${id}) must match filename prefix (${fileId})`,
+    );
+  }
+  return {
+    id,
+    title: reqString(data, "title"),
+    labels: reqStringArray(data, "labels"),
+    pinned: data.pinned === undefined ? undefined : Boolean(data.pinned),
+  };
+}

@@ -11,9 +11,12 @@ import type {
   Skills,
 } from "@/types/content";
 import { skills as skillsData } from "@/data/skills";
+import { commits as commitData } from "@/data/commits";
+import { releases as releaseData } from "@/data/releases";
 import {
   ContentError,
   loadFrontmatter,
+  validateIssueFrontmatter,
   validatePullFrontmatter,
 } from "@/lib/mdx";
 
@@ -41,6 +44,9 @@ const LABEL_KINDS: Record<string, LabelKind> = {
   question: "meta",
   learning: "meta",
   "tech-debt": "meta",
+  P1: "priority",
+  P2: "priority",
+  P3: "priority",
 };
 
 export function toLabel(name: string): Label {
@@ -162,40 +168,98 @@ export async function getReadme(): Promise<MDXResult> {
   return { content: { Component: mod.default } };
 }
 
-/* ---------- issues / commits / releases (Phase 3 fills these) ---------- */
+/* ---------- issues ---------- */
 
-export function getIssues(): Issue[] {
-  // Implemented in Phase 3 alongside app/issues/[id]; kept here so callers
-  // can be wired once.
-  void ISSUE_DIR;
-  return [];
+function issueFiles(): Array<{ slug: string; fileId: number }> {
+  if (!fs.existsSync(ISSUE_DIR)) return [];
+  return fs
+    .readdirSync(ISSUE_DIR)
+    .filter((f) => f.endsWith(".mdx"))
+    .map((f) => {
+      const prefix = parseInt(f, 10);
+      if (!Number.isInteger(prefix)) {
+        throw new ContentError(
+          `filename must start with the issue id (got "${f}")`,
+          `content/issues/${f}`,
+        );
+      }
+      return { slug: f.replace(/\.mdx$/, ""), fileId: prefix };
+    });
 }
 
+/** Pinned first, then id descending (spec §5). */
+export async function getIssues(): Promise<Issue[]> {
+  const issues = await Promise.all(
+    issueFiles().map(async ({ slug, fileId }) => {
+      const fm = loadFrontmatter(`issues/${slug}.mdx`, (data) =>
+        validateIssueFrontmatter(data, fileId),
+      );
+      const mod = await import(`@/content/issues/${slug}.mdx`);
+      if (typeof mod.default !== "function") {
+        throw new ContentError(
+          "compiled module has no default component",
+          `content/issues/${slug}.mdx`,
+        );
+      }
+      const body: MDXContent = { Component: mod.default };
+      return {
+        id: fm.id,
+        title: fm.title,
+        labels: fm.labels.map(toLabel),
+        pinned: fm.pinned,
+        body,
+      } satisfies Issue;
+    }),
+  );
+  return issues.sort((a, b) => {
+    if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+    return b.id - a.id;
+  });
+}
+
+/* ---------- commits / releases (typed data modules) ---------- */
+
+/** Career events, newest first — grouping into month sections is the
+    page's concern (app/commits). */
 export function getCommits(): CareerCommit[] {
-  // Phase 3: reads data/commits.ts
-  return [];
+  return [...commitData].sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export function getReleases(): Release[] {
-  // Phase 3: reads data/releases.ts
-  return [];
+  // Build-time integrity guards (handoff §3): exactly one latest, and its
+  // binary must exist or the releases page would advertise a dead download.
+  const latestCount = releaseData.filter((r) => r.latest).length;
+  if (latestCount !== 1) {
+    throw new ContentError(
+      `expected exactly one latest:true release, found ${latestCount}`,
+      "data/releases.ts",
+    );
+  }
+  for (const r of releaseData) {
+    if (r.pdfPath && !fs.existsSync(path.join(process.cwd(), "public", r.pdfPath))) {
+      throw new ContentError(
+        `release ${r.version} references missing PDF ${r.pdfPath}`,
+        "data/releases.ts",
+      );
+    }
+  }
+  return [...releaseData].sort((a, b) => b.releasedAt.localeCompare(a.releasedAt));
 }
 
 export function getSkills(): Skills {
   return skillsData;
 }
 
-/** Count pills for the tab bar. Only surfaces with real data get a pill;
-   Phase 3 wires the remaining loaders in and the pills appear. */
+/** Count pills for the tab bar. Only surfaces with real data get a pill. */
 export async function getTabCounts(): Promise<{
   issues: number;
   pulls: number;
   commits: number;
   releases: number;
 }> {
-  const [pulls] = await Promise.all([getAllPullRequests()]);
+  const [pulls, issues] = await Promise.all([getAllPullRequests(), getIssues()]);
   return {
-    issues: getIssues().length,
+    issues: issues.length,
     pulls: pulls.length,
     commits: getCommits().length,
     releases: getReleases().length,

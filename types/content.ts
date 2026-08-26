@@ -51,8 +51,9 @@ export interface Release {
   latest: boolean;
   releasedAt: string; // ISO
   notes: string; // markdown
-  pdfPath: string;
-  sizeKb: number;
+  /** Present only where the binary is archived (current release). */
+  pdfPath?: string;
+  sizeKb?: number;
 }
 
 export interface Issue {
@@ -61,6 +62,13 @@ export interface Issue {
   labels: Label[];
   pinned?: boolean;
   body: MDXContent;
+}
+
+/** /blob/main/CONTRIBUTING.md viewer payload (PLAN Phase 3 §4). */
+export interface ContributingView {
+  raw: string;
+  html: MDXContent;
+  lineCount: number;
 }
 
 export type LangKey = "ts" | "js" | "py" | "java" | "sql" | "other";
