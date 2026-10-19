@@ -51,7 +51,8 @@ export default async function IssueSuccessPage() {
                   <LabelPill name={template.label} kind="meta" />
                 </>
               )}
-            </p>          </div>
+            </p>
+          </div>
 
           <section aria-label="Comment thread">
             <div className="mt-4 rounded-md border border-line">

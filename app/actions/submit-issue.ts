@@ -22,19 +22,25 @@ export async function submitIssue(
   formData: FormData,
 ): Promise<SubmitResult> {
   const template = getTemplate(String(formData.get("template") ?? ""));
-  const title = String(formData.get("title") ?? "").trim();
+  // Single line: the title becomes the email subject.
+  const title = String(formData.get("title") ?? "").replace(/\s+/g, " ").trim();
   const body = String(formData.get("body") ?? "").trim();
   const contact = String(formData.get("contact") ?? "").trim();
   const honeypot = String(formData.get("website") ?? "");
-  const startedAt = Number(formData.get("startedAt") ?? 0);
+  const startedAtRaw = String(formData.get("startedAt") ?? "");
 
   /* Bots trip the honeypot or submit faster than a human can type —
-     hand them the success flow without emailing anything. */
+     hand them the success flow without emailing anything. The stamp is
+     set client-side after hydration, so an empty one means no JS (a real
+     person on the progressive-enhancement path), not a bot. */
+  const startedAt = Number(startedAtRaw);
+  const elapsed = Date.now() - startedAt;
   const botLike =
     honeypot.length > 0 ||
-    !Number.isFinite(startedAt) ||
-    Date.now() - startedAt < MIN_SUBMIT_MS ||
-    Date.now() - startedAt > 86_400_000;
+    (startedAtRaw !== "" &&
+      (!Number.isFinite(startedAt) ||
+        elapsed < MIN_SUBMIT_MS ||
+        elapsed > 86_400_000));
   if (botLike) {
     await setSuccessCookie(title, template?.kind ?? "hello");
     redirect("/issues/new/success");
@@ -48,7 +54,7 @@ export async function submitIssue(
   if (body.length < MIN_BODY || body.length > MAX_BODY) {
     fieldErrors.body = `Body must be ${MIN_BODY}–${MAX_BODY} characters.`;
   }
-  if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$|^[a-zA-Z0-9-]+$/.test(contact)) {
+  if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$|^@?[a-zA-Z0-9-]+$/.test(contact)) {
     fieldErrors.contact = "Enter an email address or a handle.";
   }
   if (Object.keys(fieldErrors).length > 0) {

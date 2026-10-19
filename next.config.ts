@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
      so MDX never becomes a route itself — pageExtensions is still required
      for @next/mdx compilation. */
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  /* The contact success page renders per request (cookies) and scans
+     content/issues for the next fake issue number — ship those files with
+     its server function instead of trusting the tracer to find them. */
+  outputFileTracingIncludes: {
+    "/issues/new/success": ["./content/issues/**/*"],
+  },
   async redirects() {
     return [
       {

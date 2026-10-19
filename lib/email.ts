@@ -1,3 +1,4 @@
+import "server-only";
 import { site } from "@/data/site";
 import type { ContactTemplate } from "@/lib/contact-templates";
 
@@ -6,6 +7,7 @@ import type { ContactTemplate } from "@/lib/contact-templates";
    reach a client chunk. */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface SubmissionPayload {
   template: ContactTemplate;
@@ -56,9 +58,10 @@ export async function sendIssueEmail(
       body: JSON.stringify({
         from: process.env.CONTACT_FROM || "onboarding@resend.dev",
         to: site.email,
-        reply_to: payload.contact?.includes("@")
-          ? payload.contact
-          : undefined,
+        reply_to:
+          payload.contact && EMAIL_RE.test(payload.contact)
+            ? payload.contact
+            : undefined,
         subject,
         text,
         html,
