@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTemplate, CONTACT_TEMPLATES } from "@/lib/contact-templates";
+import type { TemplateKind } from "@/lib/contact-templates";
 import { sendIssueEmail } from "@/lib/email";
 
 export type SubmitResult =
@@ -35,7 +36,7 @@ export async function submitIssue(
     Date.now() - startedAt < MIN_SUBMIT_MS ||
     Date.now() - startedAt > 86_400_000;
   if (botLike) {
-    await setSuccessCookie(title);
+    await setSuccessCookie(title, template?.kind ?? "hello");
     redirect("/issues/new/success");
   }
 
@@ -64,13 +65,25 @@ export async function submitIssue(
     return { ok: false, error: "delivery-failed" };
   }
 
-  await setSuccessCookie(title);
+  await setSuccessCookie(title, (template ?? CONTACT_TEMPLATES[0]).kind);
   redirect("/issues/new/success");
 }
 
-async function setSuccessCookie(title: string): Promise<void> {
+/* The success page is static ("zero toasts — success IS a page"), so the
+   submitted data crosses over via short-lived cookies: title + template
+   kind (→ label pill, emoji). Fine to delete both. */
+async function setSuccessCookie(
+  title: string,
+  templateKind: TemplateKind,
+): Promise<void> {
   const store = await cookies();
   store.set("new-issue-title", title.slice(0, MAX_TITLE), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 600,
+    path: "/",
+  });
+  store.set("new-issue-template", templateKind, {
     httpOnly: true,
     sameSite: "lax",
     maxAge: 600,
