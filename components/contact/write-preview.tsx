@@ -32,10 +32,15 @@ export function WritePreview({
     setMode("preview");
     if (previewHtml !== null) return;
     setRendering(true);
-    const { marked } = await import("marked");
-    const html = (await marked.parse(value, { async: false })) as string;
-    setPreviewHtml(html);
-    setRendering(false);
+    try {
+      const { marked } = await import("marked");
+      setPreviewHtml(marked.parse(value, { async: false }));
+    } catch {
+      setPreviewHtml(null);
+      setMode("write");
+    } finally {
+      setRendering(false);
+    }
   }
 
   return (
@@ -76,23 +81,28 @@ export function WritePreview({
           disabled={disabled}
           rows={12}
           placeholder="Markdown supported — headings, lists, code fences."
-          className="block min-h-[280px] w-full resize-y rounded-b-md border-0 bg-canvas px-3 py-2 font-mono text-sm leading-6 text-ink outline-none placeholder:text-faint"
+          className="block min-h-[280px] w-full resize-y rounded-b-md border-0 bg-canvas px-3 py-2 font-mono text-sm leading-6 text-ink outline-none placeholder:text-faint focus:ring-1 focus:ring-inset focus:ring-link"
         />
       ) : (
-        <div
-          role="region"
-          aria-label="Markdown preview"
-          aria-busy={rendering}
-          className={`min-h-[280px] px-3 py-2 text-sm ${PANEL_STYLES}`}
-        >
-          {rendering || previewHtml === null ? (
-            <p className="text-muted">Loading preview&#8230;</p>
-          ) : previewHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-          ) : (
-            <p className="text-muted">Nothing to preview.</p>
-          )}
-        </div>
+        <>
+          {/* The textarea is unmounted while previewing; keep the draft in
+              the submission so "Submit" works from either mode. */}
+          <input type="hidden" name="body" value={value} />
+          <div
+            role="region"
+            aria-label="Markdown preview"
+            aria-busy={rendering}
+            className={`min-h-[280px] px-3 py-2 text-sm ${PANEL_STYLES}`}
+          >
+            {rendering || previewHtml === null ? (
+              <p className="text-muted">Loading preview&#8230;</p>
+            ) : previewHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            ) : (
+              <p className="text-muted">Nothing to preview.</p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { RepoHeader } from "@/components/repo-header";
 import { TabBar, type TabKey } from "@/components/tab-bar";
+import { SiteFooter } from "@/components/site-footer";
 
 /* Shared repo chrome for every route: header + always-visible tab bar.
    The tab row is sticky (top-0) so navigation stays reachable; the tall
@@ -20,6 +21,7 @@ export function RepoChrome({
         </div>
       </div>
       {children}
+      <SiteFooter />
     </>
   );
 }
