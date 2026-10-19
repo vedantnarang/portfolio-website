@@ -9,6 +9,7 @@ export const site = {
     "Backend-leaning full-stack engineer. My career, presented as one GitHub repository.",
   githubProfileUrl: "https://github.com/vedantnarang",
   flickstatUrl: "https://flickstat.com",
+  linkedinUrl: "https://www.linkedin.com/in/vedant-narang",
   email: "vedant.narang36@gmail.com",
   location: "Gurugram / Delhi NCR",
 } as const;
