@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
      so MDX never becomes a route itself — pageExtensions is still required
      for @next/mdx compilation. */
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  experimental: {
+    /* Static generation runs one worker with low in-flight concurrency:
+       this dev machine sits near OOM (~1GB free), which crashed parallel
+       build workers with STATUS_STACK_BUFFER_OVERRUN. Harmless-slow on
+       beefier machines at this site's page count (~35). */
+    staticGenerationRetryCount: 2,
+    staticGenerationMaxConcurrency: 2,
+    staticGenerationMinPagesPerWorker: 64,
+  },
   async redirects() {
     return [
       {

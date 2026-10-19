@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { skills as skillsData } from "@/data/skills";
+import { commits as commitData } from "@/data/commits";
+import { releases as releaseData } from "@/data/releases";
 import type {
+  ContributingView,
   CareerCommit,
   Issue,
   Label,
@@ -10,9 +14,6 @@ import type {
   Release,
   Skills,
 } from "@/types/content";
-import { skills as skillsData } from "@/data/skills";
-import { commits as commitData } from "@/data/commits";
-import { releases as releaseData } from "@/data/releases";
 import {
   ContentError,
   loadFrontmatter,
@@ -248,6 +249,27 @@ export function getReleases(): Release[] {
 
 export function getSkills(): Skills {
   return skillsData;
+}
+
+/* ---------- CONTRIBUTING blob view ---------- */
+
+/** /blob/main/CONTRIBUTING.md payload (PLAN Phase 3 §4): the raw markdown
+    source for Raw/Copy, the compiled body for the rendered pane, and the
+    line count for the source gutter. Static import path — no slug. */
+export async function getContributing(): Promise<ContributingView> {
+  const mod = await import("@/content/contributing.mdx");
+  if (typeof mod.default !== "function") {
+    throw new ContentError(
+      "compiled module has no default component",
+      "content/contributing.mdx",
+    );
+  }
+  const raw = fs.readFileSync(path.join(process.cwd(), "content", "contributing.mdx"), "utf8");
+  return {
+    raw,
+    html: { Component: mod.default },
+    lineCount: raw.split("\n").length,
+  };
 }
 
 /** Count pills for the tab bar. Only surfaces with real data get a pill. */
