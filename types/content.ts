@@ -51,8 +51,9 @@ export interface Release {
   latest: boolean;
   releasedAt: string; // ISO
   notes: string; // markdown
-  pdfPath: string;
-  sizeKb: number;
+  /** Public URL of the PDF — absent when no file exists for this version. */
+  pdfPath?: string;
+  sizeKb?: number;
 }
 
 export interface Issue {
@@ -60,6 +61,7 @@ export interface Issue {
   title: string;
   labels: Label[];
   pinned?: boolean;
+  openedAt?: string;
   body: MDXContent;
 }
 

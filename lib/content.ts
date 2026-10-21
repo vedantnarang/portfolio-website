@@ -11,9 +11,12 @@ import type {
   Skills,
 } from "@/types/content";
 import { skills as skillsData } from "@/data/skills";
+import { commits as commitsData } from "@/data/commits";
+import { releases as releasesData } from "@/data/releases";
 import {
   ContentError,
   loadFrontmatter,
+  validateIssueFrontmatter,
   validatePullFrontmatter,
 } from "@/lib/mdx";
 
@@ -41,6 +44,9 @@ const LABEL_KINDS: Record<string, LabelKind> = {
   question: "meta",
   learning: "meta",
   "tech-debt": "meta",
+  P1: "priority",
+  P2: "priority",
+  P3: "priority",
 };
 
 export function toLabel(name: string): Label {
@@ -162,42 +168,162 @@ export async function getReadme(): Promise<MDXResult> {
   return { content: { Component: mod.default } };
 }
 
-/* ---------- issues / commits / releases (Phase 3 fills these) ---------- */
+/* ---------- contributing (blob viewer) ---------- */
 
-export function getIssues(): Issue[] {
-  // Implemented in Phase 3 alongside app/issues/[id]; kept here so callers
-  // can be wired once.
-  void ISSUE_DIR;
-  return [];
+export interface ContributingView {
+  raw: string;
+  content: MDXContent;
+  lineCount: number;
 }
 
+export function getContributingRaw(): string {
+  return fs
+    .readFileSync(path.join(process.cwd(), "content", "contributing.mdx"), "utf8")
+    .replace(/\r\n/g, "\n")
+    .trimEnd();
+}
+
+export async function getContributing(): Promise<ContributingView> {
+  const mod = await import("@/content/contributing.mdx");
+  if (typeof mod.default !== "function") {
+    throw new ContentError(
+      "compiled module has no default component",
+      "content/contributing.mdx",
+    );
+  }
+  const raw = getContributingRaw();
+  return {
+    raw,
+    content: { Component: mod.default },
+    lineCount: raw.split("\n").length,
+  };
+}
+
+/* ---------- issues ---------- */
+
+function issueFiles(): Array<{ slug: string; fileId: number }> {
+  if (!fs.existsSync(ISSUE_DIR)) return [];
+  return fs
+    .readdirSync(ISSUE_DIR)
+    .filter((f) => f.endsWith(".mdx"))
+    .map((f) => {
+      const prefix = parseInt(f, 10);
+      if (!Number.isInteger(prefix)) {
+        throw new ContentError(
+          `filename must start with the issue id (got "${f}")`,
+          `content/issues/${f}`,
+        );
+      }
+      return { slug: f.replace(/\.mdx$/, ""), fileId: prefix };
+    });
+}
+
+/** Issue ids from filenames — sync, for generateStaticParams. */
+export function getIssueIds(): number[] {
+  return issueFiles().map(({ fileId }) => fileId);
+}
+
+/** Pinned first, then id descending (spec §5). */
+export async function getIssues(): Promise<Issue[]> {
+  const issues = await Promise.all(
+    issueFiles().map(async ({ slug, fileId }) => {
+      const fm = loadFrontmatter(`issues/${slug}.mdx`, (data) =>
+        validateIssueFrontmatter(data, fileId),
+      );
+      const mod = await import(`@/content/issues/${slug}.mdx`);
+      if (typeof mod.default !== "function") {
+        throw new ContentError(
+          "compiled module has no default component",
+          `content/issues/${slug}.mdx`,
+        );
+      }
+      const body: MDXContent = { Component: mod.default };
+      return { ...fm, labels: fm.labels.map(toLabel), body } satisfies Issue;
+    }),
+  );
+  return issues.sort((a, b) => {
+    if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+    return b.id - a.id;
+  });
+}
+
+export async function getIssue(id: number): Promise<Issue | null> {
+  const all = await getIssues();
+  return all.find((issue) => issue.id === id) ?? null;
+}
+
+/* ---------- commits ---------- */
+
+const HASH_RE = /^[0-9a-f]{7}$/;
+
+/** Newest first. Validates hashes (7 hex, unique) and dates at build. */
 export function getCommits(): CareerCommit[] {
-  // Phase 3: reads data/commits.ts
-  return [];
+  const seen = new Set<string>();
+  for (const c of commitsData) {
+    const source = `data/commits.ts (${c.hash})`;
+    if (!HASH_RE.test(c.hash)) {
+      throw new ContentError("hash must be 7 lowercase hex characters", source);
+    }
+    if (seen.has(c.hash)) throw new ContentError("duplicate hash", source);
+    seen.add(c.hash);
+    if (Number.isNaN(Date.parse(c.date))) {
+      throw new ContentError(`invalid date "${c.date}"`, source);
+    }
+  }
+  return [...commitsData].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }
 
+/* ---------- releases ---------- */
+
+/** v2026.08 → /resume/vedant-narang-resume-2026-08.pdf (handoff §5). */
+export function resumePathFor(version: string): string {
+  return `/resume/vedant-narang-resume-${version.slice(1).replace(".", "-")}.pdf`;
+}
+
+/** Newest first. The PDF is derived from the version and measured on
+   disk, so a missing file hides the attachment instead of shipping a
+   404 — and warns loudly at build. */
 export function getReleases(): Release[] {
-  // Phase 3: reads data/releases.ts
-  return [];
+  const latest = releasesData.filter((r) => r.latest);
+  if (latest.length !== 1) {
+    throw new ContentError(
+      `exactly one release must be latest (found ${latest.length})`,
+      "data/releases.ts",
+    );
+  }
+  return releasesData
+    .map((r) => {
+      const pdfPath = resumePathFor(r.version);
+      const file = path.join(process.cwd(), "public", pdfPath);
+      if (!fs.existsSync(file)) {
+        if (r.latest) {
+          console.warn(
+            `[data/releases.ts] latest release ${r.version} has no PDF at public${pdfPath}`,
+          );
+        }
+        return { ...r };
+      }
+      const sizeKb = Math.round(fs.statSync(file).size / 1024);
+      return { ...r, pdfPath, sizeKb };
+    })
+    .sort((a, b) => Date.parse(b.releasedAt) - Date.parse(a.releasedAt));
 }
 
 export function getSkills(): Skills {
   return skillsData;
 }
 
-/** Count pills for the tab bar. Only surfaces with real data get a pill;
-   Phase 3 wires the remaining loaders in and the pills appear. */
+/** Count pills for the tab bar. Only surfaces with real data get a pill. */
 export async function getTabCounts(): Promise<{
   issues: number;
   pulls: number;
   commits: number;
   releases: number;
 }> {
-  const [pulls] = await Promise.all([getAllPullRequests()]);
   return {
-    issues: getIssues().length,
-    pulls: pulls.length,
-    commits: getCommits().length,
-    releases: getReleases().length,
+    issues: getIssueIds().length,
+    pulls: getPullIds().length,
+    commits: commitsData.length,
+    releases: releasesData.length,
   };
 }
