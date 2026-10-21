@@ -15,6 +15,7 @@ const NAME_CLASS: Record<string, string> = {
   "help wanted": "bg-success-tint text-success",
   "good first issue": "bg-success-tint text-success",
   "tech-debt": "bg-warn-tint text-warn",
+  bug: "bg-danger-tint text-danger",
   learning: "bg-link-tint text-link",
   question: "bg-link-tint text-link",
 };

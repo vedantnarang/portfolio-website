@@ -19,12 +19,14 @@ function Svg({ children }: { children: React.ReactNode }) {
   );
 }
 
-export type AnyState = PrState | "closed";
+/* "completed" = an issue closed as done (GitHub's purple check). */
+export type AnyState = PrState | "closed" | "completed";
 
 const STATE_COLOR: Record<AnyState, string> = {
   open: "text-success",
   merged: "text-done",
   closed: "text-danger",
+  completed: "text-done",
   draft: "text-neutral",
 };
 
@@ -46,6 +48,7 @@ function Glyph({ state }: { state: AnyState }) {
         </Svg>
       );
     case "closed":
+    case "completed":
       return (
         <Svg>
           {/* issue-closed */}

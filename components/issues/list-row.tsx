@@ -5,7 +5,7 @@ import { LabelPill } from "@/components/label-pill";
 import { PinIcon } from "@/components/icons";
 import { site } from "@/data/site";
 
-const DATE_FMT = new Intl.DateTimeFormat("en-US", {
+export const ISSUE_DATE_FMT = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   year: "numeric",
@@ -16,11 +16,14 @@ const DATE_FMT = new Intl.DateTimeFormat("en-US", {
    Labels sit inline after the title as on GitHub, so priority labels
    stay visible on mobile instead of hiding in a right-hand column. */
 export function IssueListRow({ issue }: { issue: Issue }) {
+  const closed = issue.state === "closed";
+  const date = closed ? issue.closedAt : issue.openedAt;
+
   return (
     <li className="relative px-4 py-3 transition-colors duration-150 hover:bg-hover">
       <div className="flex gap-3">
         <div className="flex pt-1">
-          <StateIcon state="open" />
+          <StateIcon state={closed ? "completed" : "open"} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="leading-6">
@@ -39,15 +42,13 @@ export function IssueListRow({ issue }: { issue: Issue }) {
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             <span>
               #{issue.id}
-              {issue.openedAt && (
+              {closed ? ` by ${site.owner} was closed` : " opened"}
+              {date && (
                 <>
-                  {" "}opened on{" "}
-                  <time dateTime={issue.openedAt}>
-                    {DATE_FMT.format(new Date(issue.openedAt))}
-                  </time>
+                  {" "}on <time dateTime={date}>{ISSUE_DATE_FMT.format(new Date(date))}</time>
                 </>
-              )}{" "}
-              by {site.owner}
+              )}
+              {!closed && ` by ${site.owner}`}
             </span>
             {issue.pinned && (
               <span className="inline-flex items-center gap-1 font-medium text-ink">

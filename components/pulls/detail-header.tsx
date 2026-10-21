@@ -12,6 +12,7 @@ const BADGE: Record<AnyState, string> = {
   open: "bg-success text-white",
   merged: "bg-done text-white",
   closed: "bg-danger text-white",
+  completed: "bg-done text-white",
   draft: "bg-neutral text-canvas",
 };
 
