@@ -1,0 +1,34 @@
+---
+id: 6
+title: Mistyped FPL manager IDs are saved and only fail a page later
+state: closed
+labels: [enhancement, backend]
+openedAt: 2026-09-06
+closedAt: 2026-09-06
+fixedIn: ["6be65d8"]
+relatedPr: 4
+---
+
+### Problem
+
+Linking an FPL team accepted any positive number. A mistyped digit was saved to the profile and only failed on `/fantasy/team`, a page later, as "FPL doesn't recognise that team ID" — a correct diagnosis delivered in the one place the user couldn't act on it.
+
+### Why now
+
+Hardening rather than a reported bug: the original code already carried a comment saying the ID wasn't verified yet. Once the FPL data layer existed there was finally something to verify against.
+
+### Approach
+
+`saveFplManagerId` now calls FPL's entry endpoint before saving. The check sits at the point of entry, where the field the user got wrong is still on screen.
+
+The deliberate asymmetry: only a 404 — FPL answering, and saying no such entry exists — rejects the ID. A timeout or a 5xx proves nothing about the number the user typed, so the ID is saved anyway and the team page's existing "unavailable" state handles the outage. Refusing to link a team because FPL is having a bad afternoon would be inventing an outage of our own.
+
+### Explicitly not doing
+
+Catching a typo that lands on somebody else's real team. No check can, short of FPL confirming ownership, which it offers no way to do — so the form shows the linked team's name back to the user instead.
+
+### Resolution
+
+Shipped in 6be65d8.
+
+{/* TODO(vedant): one line on how you checked the 404 vs outage paths. */}

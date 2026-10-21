@@ -1,0 +1,40 @@
+---
+id: 5
+title: FPL squad page serves last gameweek's team for up to an hour after a deadline
+state: closed
+labels: [bug, backend]
+openedAt: 2026-09-05
+closedAt: 2026-09-06
+fixedIn: ["150aba1"]
+relatedPr: 4
+---
+
+### Problem
+
+After an FPL deadline, `/fantasy/team` could keep showing the previous gameweek's squad for up to an hour.
+
+### Why now
+
+Caught about 75 minutes after the commit that introduced it (9d03a9a), the same night.
+
+### Approach
+
+Root cause: the current gameweek was resolved *inside* a cache keyed on the manager alone. When FPL's `is_current` moved to the next gameweek, the cache key didn't change — so the cached squad didn't either.
+
+The fact the fix is built on: a gameweek's picks are frozen at its deadline. A manager editing their team in the FPL app is editing the *next* gameweek. So the squad is immutable for a week while the scoreboard next to it changes every few minutes, and they can't share one cache.
+
+Fix: three caches at three lifetimes —
+
+- current gameweek: `minutes` (it's what flips at a deadline)
+- picks: `hours`, keyed on `(manager, gameweek)` — a new gameweek is a new key, so it can't be served last week's squad however long the entry lives
+- entry and history: `minutes` (points and ranks move during matches)
+
+### Explicitly not doing
+
+Caching picks forever, despite them being immutable. FPL fills in `automatic_subs` once, after the gameweek finishes; an hour's lag on that is fine, a month's isn't.
+
+### Resolution
+
+Shipped in 150aba1. The key itself is now the invalidation: there's no expiry to tune and nothing to bust at a deadline.
+
+{/* TODO(vedant): one line on how you verified — e.g. loading a team across a deadline. */}

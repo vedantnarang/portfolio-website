@@ -1,0 +1,41 @@
+---
+id: 4
+title: team_analytics_cache is keyed on team only and would serve the wrong season
+state: closed
+labels: [bug, backend]
+openedAt: 2026-08-30
+closedAt: 2026-08-30
+fixedIn: ["8a87e93"]
+relatedPr: 4
+---
+
+### Problem
+
+`team_analytics_cache` had `PRIMARY KEY (lens_team_id)`. Once team analytics gained a season argument ([#3](/issues/3)), a request for one season would have been served another season's cached result for up to 12 hours.
+
+### Why now
+
+Caught before it shipped — in the same change as [#3](/issues/3). Making seasons switchable is what turned a harmless cache key into a correctness bug, on the exact feature being added.
+
+### Approach
+
+Root cause: the cache key described *what* was cached (a team) but not *which version* of it (a season of a competition).
+
+Fix: `0094_team_analytics_cache_schema.sql` widens the key before the function that reads and writes the cache changes:
+
+1. add `competition_code` and `season_start_year`
+2. drop the old primary key
+3. truncate the existing rows
+4. set both new columns `NOT NULL` and make the primary key `(lens_team_id, competition_code, season_start_year)`
+
+`0095` then reads and writes on the composite key.
+
+### Explicitly not doing
+
+Backfilling the old rows. They carry no season and can't be safely reinterpreted as belonging to any particular one, so a one-time truncate is correct — the cache refills on the next request.
+
+### Resolution
+
+Shipped in 8a87e93. With the season in the primary key, a cross-season read isn't something the code has to remember to avoid — the schema can't express it.
+
+{/* TODO(vedant): add how you checked it, if you did beyond the schema guarantee. */}

@@ -45,6 +45,7 @@ chain config-driven so models swap without touching pipeline code.
 
 I'd add streaming progress earlier — long extractions currently feel like silence.
 And the fallback chain deserves contract fixtures per provider; a model changing its
-JSON shape was found by a user, not a test.
+JSON shape was found by a user, not a test. The bigger change — one model with a
+bounded retry budget instead of three — is tracked in [#11](/issues/11).
 
 *Full case study lands with the Phase 3 content pass.*

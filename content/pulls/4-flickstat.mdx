@@ -9,10 +9,11 @@ filesChanged: 87
 additions: 6421
 deletions: 1180
 liveUrl: https://flickstat.com
-repoUrl: https://github.com/vedantnarang/flickstat
 openedAt: 2025-10-05
 mergedAt: 2026-01-18
 ---
+
+> Built with Arnav Gupta and Mohammed Azeem; I led the identity-normalization design. The repository is a private team repo.
 
 ## Problem
 
@@ -46,11 +47,11 @@ subsets ("Bruno Fernandes" ⊂ "Bruno Miguel Borges Fernandes"), then fuzzy scor
 squad — a ~50× reduction that makes thresholds safe). Every match records *how* it was
 made; a spike in `fuzzy+name` matches is an audit signal that something upstream moved.
 
-Two functions carry most of the subtlety. First, normalization — where the trap is
-that Unicode NFKD **doesn't** decompose `ø`, `ß`, `ı`, and a naive ASCII fold silently
-deletes them (`Çakır` → `Cakr`):
+Normalization carries most of the subtlety — the trap is that Unicode NFKD
+**doesn't** decompose `ø`, `ß`, `ı`, and a naive ASCII fold silently deletes them
+(`Çakır` → `Cakr`):
 
-<Diff file="backend/utils/helpers.py" lang="python" additions={9} deletions={3}>
+<Diff file="backend/utils/helpers.py" lang="python" additions={9} deletions={3} author="Arnav Gupta">
 {`
 @@ def normalize_name — before/after the transliteration fix
 -def normalize_name(name):
@@ -70,34 +71,11 @@ deletes them (`Çakır` → `Cakr`):
 `}
 </Diff>
 
-Second, discovery ranking. Picking World Cup squads off WhoScored meant choosing the
-right row from a name-search results table 1,320 times. Highest-name-score-wins
-attached a 25-year-old Cruzeiro "Matheus Cunha"'s stats to the 27-year-old
-international — so ranking became corroboration-first with a hard age veto:
-
-<Diff file="backend/wc/scrapers/whoscored_profiles.py" lang="python" additions={11} deletions={2}>
-{`
-@@ _rank — from "best name wins" to corroboration-first with a veto
--    rows.sort(key=lambda r: r["name_score"], reverse=True)
--    return rows
-+    # The NO-WRONG-DATA gate: strong name necessary but never sufficient.
-+    for r in rows:
-+        r["age_ok"] = (r["age"] is None or tm_age is None
-+                       or abs(r["age"] - tm_age) <= AGE_TOLERANCE)
-+        r["age_match"] = (r["age"] is not None and tm_age is not None
-+                          and abs(r["age"] - tm_age) <= AGE_TOLERANCE)
-+        r["acceptable"] = (r["name_score"] >= NAME_SCORE_ACCEPT and r["age_ok"]
-+                           and (r["nat_ok"] or r["age_match"]))
-+
-+    # acceptable first, corroborated second, raw score only third.
-+    # A known age conflict is a VETO — same-name impostors can't win.
-+    rows.sort(key=lambda r: (r["acceptable"],
-+                             r["nat_ok"] or r["age_match"],
-+                             r["name_score"]),
-+              reverse=True)
-+    return rows
-`}
-</Diff>
+The same rule shaped discovery ranking. Picking World Cup squads off WhoScored meant
+choosing the right row from a name-search results table 1,320 times, and
+highest-name-score-wins attached a 25-year-old Cruzeiro "Matheus Cunha"'s stats to the
+27-year-old international — so ranking became corroboration-first, with a known age
+conflict acting as a hard veto rather than a penalty.
 
 Result across both problems: 1,277/1,320 World Cup squad slots matched (96.7%) with
 **zero wrong matches**, verified by an independent DOB-audit query run after every
@@ -110,6 +88,49 @@ via `SECURITY DEFINER` with pinned `search_path` so the RLS-locked raw tables st
 closed while one curated query stays open. Live tournament scores ride a long-lived
 asyncio WebSocket relay with reconnect loops and a write gate that drops frames for
 non-tournament events.
+
+The read side is where most of my own commits live. One of them: team pages were
+silently blending seasons, because a position-history RPC I'd written months earlier
+defaulted to `'2025'` and hardcoded the Premier League against a free-text season
+column — and the frontend never passed a season at all. The fix scopes it through the
+structured competition/season keys, with `null` meaning "latest season", never "all
+seasons" ([closed issue #3](/issues/3)):
+
+<Diff file="supabase/migrations/0093_scope_team_position_and_matches.sql" lang="sql" additions={17} deletions={3}>
+{`
+@@ signature — a new parameter list is a second overload, so the old one goes first
++drop function if exists public.get_team_position_history(uuid, text);
+ CREATE OR REPLACE FUNCTION public.get_team_position_history(
+   p_lens_team_id uuid,
+-  p_season       text DEFAULT '2025'
++  p_competition_code text default null,
++  p_season_start_year integer default null
+ )
+@@ scope — null resolves to the team's latest season, never to every season
++  WITH scope AS (
++    SELECT coalesce(p_competition_code,  d.competition_code)  AS cc,
++           coalesce(p_season_start_year, d.season_start_year) AS yr
++    FROM (values (1)) v(dummy)
++    LEFT JOIN LATERAL team_default_scope(p_lens_team_id) d ON true
++  ),
++  scoped_season AS (
++    SELECT s.season_id, s.competition_id
++    FROM seasons s
++    JOIN competitions c ON c.competition_id = s.competition_id
++    CROSS JOIN scope
++    WHERE c.code = scope.cc AND s.start_year = scope.yr
++  ),
+@@ per_team_match — free-text hardcode replaced by the structured keys
+-    WHERE m.competition = 'Premier League'
+-      AND (p_season IS NULL OR m.season = p_season OR (p_season = '2025/26' AND m.season = '2025'))
++    JOIN scoped_season ss ON ss.season_id = m.season_id AND ss.competition_id = m.competition_id
+`}
+</Diff>
+
+Dropping the old signature first is the part that bites: even with every new parameter
+defaulted, Postgres keeps both overloads, and the frontend's existing one-argument call
+fails with `function is not unique`. The rest of my backend fixes — RLS, cache keys and
+the FPL integration — are written up as [closed issues](/issues/closed).
 
 ## Tradeoffs
 
@@ -125,7 +146,7 @@ non-tournament events.
   it demands review discipline I now apply everywhere: pin the path, keep the function
   read-only, expose nothing table-shaped.
 - **Free scraping sits behind anti-bot walls.** SeleniumBase UC mode works today;
-  a selector or challenge change breaks ingestion without warning. I accepted that
+  a selector or challenge change breaks ingestion without warning. We accepted that
   operational risk rather than pay for official feeds at zero revenue.
 
 ## What I'd do differently
@@ -138,7 +159,9 @@ paid for itself by World Cup knockout stages. And knockout resolution produced t
 separate production bugs from one root cause: deciding winners from the stored
 scoreline while ignoring that extra time and shootouts are stored *level by design* —
 the priority order (ET first, then pens, then refuse-to-guess) now lives in exactly
-one function, which is where it should have started.
+one function, which is where it should have started. Finally, xG still comes from two
+providers' models — Understat for leagues, BSD for the Champions League — so the same
+player's numbers aren't comparable across competitions. Tracked in [#12](/issues/12).
 
 <Review author="reviewer" q="Why not pg_trgm similarity in SQL instead of rapidfuzz in memory?">
 Because the cascade's job isn't scoring — it's *candidate control*. By the time fuzz

@@ -1,0 +1,34 @@
+---
+id: 2
+title: "xG footer never renders: match_external_ids has row-level security on and no read policy"
+state: closed
+labels: [bug, backend]
+openedAt: 2026-08-26
+closedAt: 2026-08-26
+fixedIn: ["c5c0ed5"]
+relatedPr: 4
+---
+
+### Problem
+
+The xG footer on "Played" result cards never rendered — for any match, whether or not the Understat shot data behind it existed. No error anywhere: the query simply came back empty.
+
+### Why now
+
+Caught during development. `getMatchXgTotals()` was new in this change and the first code to read `match_external_ids` directly with the anon key — every other query on the page goes through an RPC. The policy gap underneath had been there since the table was created months earlier; nothing had read it this way before.
+
+### Approach
+
+Root cause: the table had row-level security enabled with zero policies. With RLS on and no matching policy, Postgres denies by default — and for a `SELECT` that means zero rows, not an error, which is why it looked like missing data rather than a permissions problem. Every other bridge table (`player_external_ids`, the Understat shots table) already had an anon-read policy; this one never got one.
+
+Fix: migration `0079_match_external_ids_anon_read.sql` adds a `SELECT` policy for `anon` and `authenticated`, matching the other bridge tables.
+
+### Explicitly not doing
+
+Widening anything else. The policy is read-only — writes to the table stay locked, and no other table's policies changed.
+
+### Resolution
+
+Shipped in `0079` alongside the query that needed it (c5c0ed5). The migration's header records the root cause, so the next person to hit an empty anon read on a bridge table finds the answer in the schema history.
+
+{/* TODO(vedant): one line on how you confirmed it — e.g. footer rendering on a known match, or the anon query returning rows. */}

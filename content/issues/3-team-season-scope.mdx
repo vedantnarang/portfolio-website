@@ -1,0 +1,41 @@
+---
+id: 3
+title: Team pages blend seasons; position history is hardcoded to the 2025 Premier League
+state: closed
+labels: [bug, data]
+openedAt: 2026-08-30
+closedAt: 2026-08-30
+fixedIn: ["8a87e93", "37ca597"]
+relatedPr: 4
+---
+
+### Problem
+
+Team pages mixed data from different seasons without saying so. Three functions were involved:
+
+- `get_team_position_history` defaulted to `p_season = '2025'` and hardcoded `competition = 'Premier League'` against a free-text season column.
+- `get_team_analytics` read the WhoScored events table seven times with no season or competition filter.
+- `get_team_formation` had the same unfiltered read.
+
+### Why now
+
+This one reached production. The position-history default was mine, from the team-trajectory graph I'd shipped in May; the analytics and formation functions were teammates'. It surfaced while scoping team pages to seasons. The function *looked* season-aware because it already had a season parameter — which is exactly why nobody noticed the frontend never passed one.
+
+### Approach
+
+A shared rule first: `null` means "latest season with data", never "all seasons". A forgetful caller then gets the right shape of answer for a possibly-wrong season — visible — instead of a silent multi-season blend that looks like working code.
+
+- `0092` adds `team_default_scope()` and `get_team_seasons`.
+- `0093` scopes position history and matches through the structured competition/season keys instead of the free-text hardcode. The old signature is dropped first: adding even fully-defaulted parameters creates a second overload, and the frontend's existing call fails with `function is not unique`.
+- `0095` adds the season filter to all seven analytics reads and the formation read.
+
+### Explicitly not doing
+
+- The two league-wide materialized views (press height, fouls) are cross-team leaderboards, not team reads — left out of scope.
+- `get_team_formation` was fixed but not wired up: nothing in the frontend calls it.
+
+### Resolution
+
+Shipped in 8a87e93 (`0092`–`0094`) and 37ca597 (`0095` plus the frontend season switcher).
+
+{/* TODO(vedant): one line on how you verified — e.g. comparing a team's position history before/after for a season you knew. */}

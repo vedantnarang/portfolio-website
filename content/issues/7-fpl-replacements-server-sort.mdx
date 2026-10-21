@@ -1,0 +1,37 @@
+---
+id: 7
+title: FPL replacement table builds 100 full rows to show 20, and sorts them in the browser
+state: closed
+labels: [tech-debt, backend]
+openedAt: 2026-09-07
+closedAt: 2026-09-11
+fixedIn: ["5667584", "189d5e9", "596984c"]
+relatedPr: 4
+---
+
+### Problem
+
+`get_fpl_replacement_candidates` (`0121`) returned every candidate for a position under a price — 60 to 100 rows, each carrying two full-season per-gameweek series — and the table sorted and sliced them in the browser.
+
+### Why now
+
+The cost was the payload: building those series for a hundred players so eighty could be thrown away. Paging fixes the cost, but paging and client-side sorting can't both be right — sorting twenty of eighty rows in the browser puts the best xG in the game on page four and leaves it there, because the client can't order rows it hasn't fetched. So the sort had to move with the paging. Caught before paging shipped.
+
+### Approach
+
+`0124_fpl_replacement_candidates_paged.sql` returns one page, sorted in Postgres:
+
+- `p_sort` / `p_direction` are parameters, checked against a whitelist that mirrors the frontend's column registry.
+- `nulls last` is written out in both directions. The default is backwards for half the columns, and a player with no xG must never top an xG sort.
+- Every ordering ends in `(total_points desc, now_cost, web_name)`. With offset paging, two requests that disagree about equal rows show one player twice and skip another, so the tie-break has to make the order total.
+- The cheap sortable columns are computed for every candidate; the full 56-column row is built only for the ids that survive the limit.
+
+### Explicitly not doing
+
+A separate function for the pinned outgoing player. He's fetched through the same function by id (`p_element_ids`), so his row is built by the same column list — a second copy of 56 columns would drift.
+
+### Resolution
+
+Shipped in 5667584 (`0124`), with the frontend moved onto it in 189d5e9 and 596984c.
+
+{/* TODO(vedant): one line on verification — e.g. checking a sort across page boundaries. */}

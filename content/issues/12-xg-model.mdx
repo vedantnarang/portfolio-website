@@ -1,25 +1,30 @@
 ---
 id: 12
-title: Replace raw shot counts with an expected-goals model in Flickstat
-labels: [enhancement, P1, data]
-openedAt: 2026-09-14
+title: Fit one xG model across Understat and BSD shots so league and UCL numbers are comparable
+labels: [enhancement, data, P1]
+openedAt: 2026-10-08
+relatedPr: 4
 ---
 
-**Problem**
+### Problem
 
-Flickstat currently surfaces shot volume, and shot volume is a bad proxy for attacking quality. A player who takes eight speculative efforts from 25 yards reads as more threatening than one who takes three from inside the six-yard box, which is backwards. Anyone who follows football closely will spot this immediately, and it undermines trust in every other number on the page.
+Flickstat's expected-goals numbers come from two different providers' models. League xG is Understat's; Champions League and World Cup xG is BSD's. Each provider trains its own model on its own features, so a player's 0.4 xG in the league and 0.4 xG in the Champions League aren't measuring the same thing — and nothing on the site says so.
 
-**Why it's worth doing**
+### Why now
 
-It's the difference between a stats dashboard and an analytics platform. Expected goals is the single metric that most changes how a match reads, and shipping it would make Flickstat genuinely useful rather than merely current.
+Today the two only ever appear on separate pages, so the mismatch is latent rather than visible. That's the cheap moment to fix it: the next natural feature — comparing a player's league form with his European form, or opening the compare view to Champions League players — would put the two models side by side and present the difference as football.
 
-**Rough approach**
+### Approach
 
-{/* TODO(vedant): confirm the scraped data carries shot coordinates. If it doesn't, this issue's real blocker is a data-source problem and this section should say so (handoff §2). */}
-Start with a logistic regression over shot location and shot type — distance, angle, body part, whether it followed a set piece. That's a well-understood baseline and it's honest about being a baseline.
+Both providers already give us what a baseline model needs, per shot: pitch coordinates, body part and situation (open play, set piece, penalty). Derive distance and angle from the coordinates, then fit one logistic regression over both providers' stored shots. Show it next to the provider figure rather than replacing it, labelled as ours, until it has been checked against a full season.
 
-Explicitly not doing: anything involving defensive pressure or possession sequences. The data isn't there and pretending otherwise would produce a confident-looking number that's wrong.
+A logistic regression on shot geometry is a well-understood baseline, and it's honest about being one.
 
-**Open question**
+### Explicitly not doing
 
-Whether to display xG as a headline stat or keep it secondary until it's been sanity-checked against a full season. A wrong xG figure is worse than no xG figure.
+- Anything involving defensive pressure or possession sequences. The data isn't there, and pretending otherwise would produce a confident-looking number that's wrong.
+- Removing the provider xG. It stays the default until the in-house figure has earned trust.
+
+### Open question
+
+The two providers use different coordinate systems — Understat's 0–1 pitch versus BSD's own — and the mapping between them is the first thing to get right. A wrong xG figure is worse than no xG figure.
