@@ -1,6 +1,6 @@
-﻿---
+---
 id: 5
-title: "AI image generation SaaS â€” Square Yards"
+title: "AI image generation SaaS — Square Yards"
 state: open
 branch: ai-image-saas
 labels: [ai, backend, infra]
@@ -17,7 +17,7 @@ Interior-design workflows at Square Yards needed production AI image generation:
 designers and marketing teams iterate on room visuals, and the existing manual loop
 was slow and inconsistent across teams. The platform had to wrap third-party
 image-generation APIs behind one internal surface with predictable auth, cost
-behavior, and delivery speed â€” on a SaaS stack built on Next.js and Node.js.
+behavior, and delivery speed — on a SaaS stack built on Next.js and Node.js.
 
 ## Approach
 
@@ -29,13 +29,13 @@ app servers. Frontend work ships from Figma specs with pixel-accurate handoff.
 
 ## Tradeoffs
 
-- **Wrapping providers vs building generation in-house** â€” wrapping absorbs model churn
+- **Wrapping providers vs building generation in-house** — wrapping absorbs model churn
   (swap providers behind one interface) but accepts per-call vendor pricing and rate
   ceilings. At this scale, wrap wins on both cost of change and time-to-value.
-- **Security boundary placement** â€” keys live only server-side and every outbound call
+- **Security boundary placement** — keys live only server-side and every outbound call
   passes one choke point. It costs a hop per request; it removes an entire class of
   leaked-credential incidents.
-- **CDN-first asset delivery** â€” regeneration is expensive, so generated images are
+- **CDN-first asset delivery** — regeneration is expensive, so generated images are
   immutable and cacheable. Staleness is handled by content-addressed URLs, not cache
   invalidation.
 
@@ -43,12 +43,12 @@ app servers. Frontend work ships from Figma specs with pixel-accurate handoff.
 
 Generation currently runs synchronously within a request's lifetime. A queue with
 webhook completion would decouple user-perceived latency from provider latency and make
-retries boring â€” that refactor is the next thing I'd reach for if volume grows.
+retries boring — that refactor is the next thing I'd reach for if volume grows.
 
 <Review author="reviewer" q="Why not queue generation from day one?">
 Honest scope call: the first internal users needed proof of value more than they needed
 elasticity. Sync kept the architecture reviewable in an afternoon. The queue is designed
-for â€” this PR stays open until it lands.
+for — this PR stays open until it lands.
 </Review>
 
-*Employer project â€” shared at system level by design; no proprietary code appears here.*
+*Employer project — shared at system level by design; no proprietary code appears here.*
