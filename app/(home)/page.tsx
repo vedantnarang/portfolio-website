@@ -2,6 +2,7 @@ import { PageShell } from "@/components/page-shell";
 import { Prose } from "@/components/prose";
 import { FileTree } from "@/components/home/file-tree";
 import { SidebarAbout } from "@/components/home/sidebar-about";
+import { RevealProvider } from "@/components/motion/reveal-provider";
 import { getReadme } from "@/lib/content";
 
 /* Spec §2 — three stacked zones like a real repo page:
@@ -12,7 +13,10 @@ export default async function HomePage() {
 
   return (
     <PageShell>
-      <div className="grid grid-cols-1 gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_296px]">
+      <RevealProvider
+        selector="#about [data-prose] > *, aside > *"
+        className="grid grid-cols-1 gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_296px]"
+      >
         <main className="min-w-0 space-y-6">
           <FileTree />
           <article
@@ -26,7 +30,7 @@ export default async function HomePage() {
           </article>
         </main>
         <SidebarAbout />
-      </div>
+      </RevealProvider>
     </PageShell>
   );
 }

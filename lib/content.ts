@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import matter from "gray-matter";
 import type {
   CareerCommit,
   Issue,
@@ -111,6 +112,18 @@ export async function getPullRequest(id: number): Promise<PullRequest> {
   const pr = all.find((p) => p.id === id);
   if (!pr) throw new ContentError(`no pull request with id ${id}`, "content/pulls");
   return pr;
+}
+
+/** A PR body's opening — everything before "## Approach" (the attribution
+   note, if any, plus the Problem section) with headings dropped, as raw
+   markdown. Feeds /plain, which summarises each project rather than
+   embedding full case studies. */
+export function getPullSummaryMarkdown(id: number): string {
+  const entry = prFiles().find(({ fileId }) => fileId === id);
+  if (!entry) return "";
+  const { content } = matter(fs.readFileSync(path.join(PR_DIR, entry.slug + ".mdx"), "utf8"));
+  const opening = content.split(/^## (?!Problem)/m)[0];
+  return opening.replace(/^## .*$/gm, "").trim();
 }
 
 /* ---------- diff blocks (Files changed tab) ---------- */
