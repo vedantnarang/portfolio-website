@@ -1,4 +1,5 @@
 import { highlightLines } from "@/lib/shiki";
+import { site } from "@/data/site";
 
 /* ============================================================
    GitHub-style diff block for PR bodies (spec §11 MDX contract).
@@ -159,12 +160,15 @@ export async function Diff({
   additions,
   deletions,
   lang = "ts",
+  author,
   children,
 }: {
   file: string;
   additions?: number;
   deletions?: number;
   lang?: string;
+  /** Set when someone other than the site owner wrote this code. */
+  author?: string;
   children?: React.ReactNode;
 }) {
   const code = extractCode(children);
@@ -196,6 +200,12 @@ export async function Diff({
           </span>
         )}
       </figcaption>
+      {author && (
+        <p className="border-t border-line-muted bg-subtle px-4 py-1.5 text-xs text-muted">
+          Implemented by <span className="font-semibold text-ink">{author}</span> · design
+          by {site.owner}
+        </p>
+      )}
 
       {/* Unified — below 768px */}
       <div className="md:hidden">

@@ -5,7 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { Prose } from "@/components/prose";
 import { StateIcon } from "@/components/state-icon";
 import { LabelPill } from "@/components/label-pill";
-import { PinIcon } from "@/components/icons";
+import { GitPullRequestIcon, PinIcon } from "@/components/icons";
 import { getIssue, getIssueIds } from "@/lib/content";
 import { site } from "@/data/site";
 
@@ -47,12 +47,14 @@ export default async function IssueDetailPage({ params }: PageProps<"/issues/[id
   if (!issue) notFound();
 
   const Body = issue.body.Component;
+  const closed = issue.state === "closed";
+  const date = closed ? issue.closedAt : issue.openedAt;
 
   return (
     <PageShell>
       <main className="py-6">
         <p className="mb-2 text-sm text-muted">
-          <Link href="/issues" className="text-link hover:underline">
+          <Link href={closed ? "/issues/closed" : "/issues"} className="text-link hover:underline">
             Issues
           </Link>{" "}
           / #{issue.id}
@@ -63,18 +65,18 @@ export default async function IssueDetailPage({ params }: PageProps<"/issues/[id
             {issue.title} <span className="font-normal text-muted">#{issue.id}</span>
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success px-3 py-0.5 text-xs font-semibold text-white">
-              <StateIcon state="open" className="text-white" />
-              Open
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold text-white ${closed ? "bg-done" : "bg-success"}`}
+            >
+              <StateIcon state={closed ? "completed" : "open"} className="text-white" />
+              {closed ? "Closed" : "Open"}
             </span>
             <span>
-              <span className="font-semibold text-ink">{site.owner}</span> opened this issue
-              {issue.openedAt && (
+              <span className="font-semibold text-ink">{site.owner}</span>{" "}
+              {closed ? "closed this as completed" : "opened this issue"}
+              {date && (
                 <>
-                  {" "}on{" "}
-                  <time dateTime={issue.openedAt}>
-                    {DATE_FMT.format(new Date(issue.openedAt))}
-                  </time>
+                  {" "}on <time dateTime={date}>{DATE_FMT.format(new Date(date))}</time>
                 </>
               )}
             </span>
@@ -109,6 +111,32 @@ export default async function IssueDetailPage({ params }: PageProps<"/issues/[id
                 ))}
               </div>
             </section>
+            {issue.relatedPr !== undefined && (
+              <section className="border-t border-line-muted pt-4">
+                <h2 className="mb-2 text-xs font-semibold text-muted">Related pull request</h2>
+                <Link
+                  href={`/pull/${issue.relatedPr}/conversation`}
+                  className="inline-flex items-center gap-1.5 text-link hover:underline"
+                >
+                  <GitPullRequestIcon />#{issue.relatedPr}
+                </Link>
+              </section>
+            )}
+            {issue.fixedIn && (
+              <section className="border-t border-line-muted pt-4">
+                <h2 className="mb-2 text-xs font-semibold text-muted">Fixed in</h2>
+                <ul className="flex flex-wrap gap-1.5">
+                  {issue.fixedIn.map((hash) => (
+                    <li key={hash}>
+                      <code className="select-all rounded-md bg-inset px-1.5 py-0.5 font-mono text-xs">
+                        {hash}
+                      </code>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-muted">Private team repository.</p>
+              </section>
+            )}
             {issue.pinned && (
               <p className="flex items-center gap-1.5 border-t border-line-muted pt-4 text-muted">
                 <PinIcon />

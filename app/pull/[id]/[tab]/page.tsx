@@ -192,6 +192,7 @@ function FilesChanged({ prId }: { prId: number }) {
           lang={block.lang}
           additions={block.additions}
           deletions={block.deletions}
+          author={block.author}
         >
           {block.code}
         </Diff>

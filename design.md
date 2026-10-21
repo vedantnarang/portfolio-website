@@ -115,7 +115,8 @@ Never rely on red/green alone — always pair with `+`/`−` glyphs (GitHub does
 |---|---|---|
 | Open PR / Open issue | `success` | Circle |
 | Merged PR | `done` | Circle-with-square |
-| Closed PR (unmerged) / Closed issue | `danger` | Circle-with-cross |
+| Closed PR (unmerged) / Closed issue (not planned) | `danger` | Circle-with-cross |
+| Closed issue (completed) | `done` | Circle-with-check |
 | Draft PR | `neutral-emphasis` | Dashed circle |
 
 ### Labels & pills
@@ -124,6 +125,7 @@ Never rely on red/green alone — always pair with `+`/`−` glyphs (GitHub does
 |---|---|---|---|
 | `enhancement`, `help wanted`, `good first issue` | `success-subtle` | `success-fg` | none |
 | `tech-debt` | `attention-subtle` | `attention-fg` | none |
+| `bug` | `danger-subtle` | `danger-fg` | none |
 | `learning`, `question` | `accent-subtle` | `accent-fg` | none |
 | `backend` `frontend` `data` `ai` `infra` (filter chips) | `canvas-subtle` | `fg-muted` | `border-default`; active chip = `accent-emphasis` bg, white fg |
 | `P1` `P2` `P3` priority | transparent | `fg-muted` | `border-default` (outline pill) |
