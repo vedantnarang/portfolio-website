@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import type { PrState } from "@/types/content";
+import type { IssueState, PrState } from "@/types/content";
 
 /* ============================================================
    Server-only MDX loading: raw file read + frontmatter extraction
@@ -166,12 +166,18 @@ export function validatePullFrontmatter(data: Data, fileId: number): PullFrontma
   };
 }
 
+const ISSUE_STATES = ["open", "closed"] as const;
+
 export interface IssueFrontmatter {
   id: number;
   title: string;
+  state: IssueState;
   labels: string[];
   pinned?: boolean;
   openedAt?: string;
+  closedAt?: string;
+  fixedIn?: string[];
+  relatedPr?: number;
 }
 
 /** Validate issue frontmatter; `fileId` comes from the filename prefix. */
@@ -183,11 +189,26 @@ export function validateIssueFrontmatter(data: Data, fileId: number): IssueFront
       `frontmatter.id (${id}) must match filename prefix (${fileId})`,
     );
   }
+  const state = data.state === undefined ? "open" : reqEnum(data, "state", ISSUE_STATES);
+  const closedAt = optDate(data, "closedAt");
+  if ((state === "closed") !== Boolean(closedAt)) {
+    throw new Error("frontmatter.closedAt is required when state is closed, and only then");
+  }
+  // Quote hashes in YAML: an all-digit hash like 5667584 parses as a number.
+  const fixedIn = reqStringArray(data, "fixedIn");
+  if (fixedIn.some((h) => !/^[0-9a-f]{7}$/.test(h))) {
+    throw new Error('frontmatter.fixedIn must list quoted 7-character commit hashes, e.g. ["5667584"]');
+  }
+  const relatedPr = data.relatedPr === undefined ? undefined : reqNumber(data, "relatedPr");
   return {
     id,
     title: reqString(data, "title"),
+    state,
     labels: reqStringArray(data, "labels"),
     pinned: optBoolean(data, "pinned"),
     openedAt: optDate(data, "openedAt"),
+    closedAt,
+    fixedIn: fixedIn.length ? fixedIn : undefined,
+    relatedPr,
   };
 }

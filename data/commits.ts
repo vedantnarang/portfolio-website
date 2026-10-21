@@ -21,7 +21,7 @@ export const commits: CareerCommit[] = [
     hash: "8c3e7b1",
     date: "2025-11-20", // [CONFIRM] first production deploy of flickstat.com
     message: "feat: ship flickstat.com to production",
-    body: "Built and deployed a football analytics platform on Next.js and Supabase, with Python scrapers on cron continuously harvesting match and player data. First thing I shipped that had real users.",
+    body: "Built with Arnav Gupta and Mohammed Azeem; I led the identity-normalization design. A football analytics platform on Next.js and Supabase, with Python scrapers on cron continuously harvesting match and player data. First thing I shipped that had real users.",
   },
   {
     hash: "a3f9c21",

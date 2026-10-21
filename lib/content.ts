@@ -3,6 +3,7 @@ import path from "node:path";
 import type {
   CareerCommit,
   Issue,
+  IssueState,
   Label,
   LabelKind,
   MDXContent,
@@ -44,6 +45,7 @@ const LABEL_KINDS: Record<string, LabelKind> = {
   question: "meta",
   learning: "meta",
   "tech-debt": "meta",
+  bug: "meta",
   P1: "priority",
   P2: "priority",
   P3: "priority",
@@ -118,6 +120,7 @@ export interface DiffBlock {
   lang: string;
   additions?: number;
   deletions?: number;
+  author?: string;
   /** Raw code including +/-/@@ classification markers. */
   code: string;
 }
@@ -148,6 +151,7 @@ export function getPullDiffBlocks(id: number): DiffBlock[] {
       lang: strAttr(attrs, "lang") ?? "ts",
       additions: numAttr(attrs, "additions"),
       deletions: numAttr(attrs, "deletions"),
+      author: strAttr(attrs, "author"),
       code: match[2],
     });
   }
@@ -223,13 +227,31 @@ export function getIssueIds(): number[] {
   return issueFiles().map(({ fileId }) => fileId);
 }
 
-/** Pinned first, then id descending (spec §5). */
-export async function getIssues(): Promise<Issue[]> {
+function issueFrontmatter(slug: string, fileId: number) {
+  const fm = loadFrontmatter(`issues/${slug}.mdx`, (data) =>
+    validateIssueFrontmatter(data, fileId),
+  );
+  if (fm.relatedPr !== undefined && !getPullIds().includes(fm.relatedPr)) {
+    throw new ContentError(
+      `relatedPr ${fm.relatedPr} is not an existing pull request`,
+      `content/issues/${slug}.mdx`,
+    );
+  }
+  return fm;
+}
+
+/** Open/closed counts from frontmatter alone — sync, no MDX compile. */
+export function getIssueCounts(): { open: number; closed: number } {
+  const states = issueFiles().map(({ slug, fileId }) => issueFrontmatter(slug, fileId).state);
+  const open = states.filter((s) => s === "open").length;
+  return { open, closed: states.length - open };
+}
+
+/** Pinned first, then id descending (spec §5). Optionally one state. */
+export async function getIssues(state?: IssueState): Promise<Issue[]> {
   const issues = await Promise.all(
     issueFiles().map(async ({ slug, fileId }) => {
-      const fm = loadFrontmatter(`issues/${slug}.mdx`, (data) =>
-        validateIssueFrontmatter(data, fileId),
-      );
+      const fm = issueFrontmatter(slug, fileId);
       const mod = await import(`@/content/issues/${slug}.mdx`);
       if (typeof mod.default !== "function") {
         throw new ContentError(
@@ -241,10 +263,12 @@ export async function getIssues(): Promise<Issue[]> {
       return { ...fm, labels: fm.labels.map(toLabel), body } satisfies Issue;
     }),
   );
-  return issues.sort((a, b) => {
-    if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
-    return b.id - a.id;
-  });
+  return issues
+    .filter((issue) => !state || issue.state === state)
+    .sort((a, b) => {
+      if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+      return b.id - a.id;
+    });
 }
 
 export async function getIssue(id: number): Promise<Issue | null> {
@@ -321,7 +345,8 @@ export async function getTabCounts(): Promise<{
   releases: number;
 }> {
   return {
-    issues: getIssueIds().length,
+    // GitHub's tab pill counts open issues only.
+    issues: getIssueCounts().open,
     pulls: getPullIds().length,
     commits: commitsData.length,
     releases: releasesData.length,

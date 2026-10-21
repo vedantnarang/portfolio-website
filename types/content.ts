@@ -56,12 +56,21 @@ export interface Release {
   sizeKb?: number;
 }
 
+export type IssueState = "open" | "closed";
+
 export interface Issue {
   id: number;
   title: string;
+  state: IssueState;
   labels: Label[];
   pinned?: boolean;
   openedAt?: string;
+  /** Present iff state === "closed". */
+  closedAt?: string;
+  /** Short commit hashes of the fix (private repo — rendered as text). */
+  fixedIn?: string[];
+  /** The pull request this issue improves or belongs to. */
+  relatedPr?: number;
   body: MDXContent;
 }
 
