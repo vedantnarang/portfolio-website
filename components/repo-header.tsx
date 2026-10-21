@@ -59,6 +59,10 @@ export async function RepoHeader() {
           <span>{counts.pulls} pull requests</span>
           <span aria-hidden>·</span>
           <span>Updated {formatRelativeTime(lastUpdated)}</span>
+          {/* Spec §10 escape hatch: persistent, unobtrusive. */}
+          <Link href="/plain" className="ml-auto text-link hover:underline">
+            Plain view
+          </Link>
         </p>
       </div>
     </header>

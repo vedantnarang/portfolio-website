@@ -31,10 +31,17 @@ export function groupByMonth(
    nothing, and it would fight Phase 5's pinned scrub on this section. */
 export function DateGroup({ label, commits }: { label: string; commits: CareerCommit[] }) {
   return (
-    <li className="relative pb-6 pl-8 last:pb-0">
+    <li data-timeline-group className="relative pb-6 pl-8 last:pb-0">
       <h2 className="mb-2 flex items-center gap-2 text-sm text-muted">
         <span className="absolute left-0 flex h-5 w-4 items-center justify-center bg-canvas text-muted">
           <GitCommitIcon />
+          {/* Fills the commit ring; Phase 5's scrub grows it in as the rail
+              reaches this month. Static (filled) without JS or motion. */}
+          <span
+            aria-hidden
+            data-timeline-dot
+            className="absolute h-[5px] w-[5px] rounded-full bg-link"
+          />
         </span>
         Commits on {label}
       </h2>

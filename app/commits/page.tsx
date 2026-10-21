@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/components/page-shell";
 import { DateGroup, groupByMonth } from "@/components/commits/date-group";
+import { CommitTimelineScrub } from "@/components/commits/timeline-scrub";
 import { BranchIcon } from "@/components/icons";
 import { getCommits } from "@/lib/content";
 import { site } from "@/data/site";
@@ -26,20 +27,23 @@ export default function CommitsPage() {
           </span>
         </p>
 
-        <div className="relative">
-          {/* Timeline rail. Its own element so Phase 5 can scrub-draw it
-              with a transform without touching the rows. */}
-          <div
-            aria-hidden
-            data-timeline-connector
-            className="absolute top-2.5 bottom-2 left-[7.5px] w-px origin-top bg-line"
-          />
-          <ol className="relative">
-            {groups.map((group) => (
-              <DateGroup key={group.key} label={group.label} commits={group.commits} />
-            ))}
-          </ol>
-        </div>
+        <CommitTimelineScrub>
+          <div className="relative">
+            {/* Timeline rail — its own element so the scrub draws it with a
+                transform without touching the rows. Sized to the list, not
+                the (possibly taller) pinned section. */}
+            <div
+              aria-hidden
+              data-timeline-connector
+              className="absolute top-2.5 bottom-2 left-[7.5px] w-px origin-top bg-line"
+            />
+            <ol className="relative">
+              {groups.map((group) => (
+                <DateGroup key={group.key} label={group.label} commits={group.commits} />
+              ))}
+            </ol>
+          </div>
+        </CommitTimelineScrub>
       </main>
     </PageShell>
   );

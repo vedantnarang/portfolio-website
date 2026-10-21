@@ -12,7 +12,17 @@ export function SiteFooter() {
           {site.owner}/{site.repo} ·{" "}
           <Link href="/issues/new" className="text-link hover:underline">
             Open an issue
+          </Link>{" "}
+          ·{" "}
+          <Link href="/plain" className="text-link hover:underline">
+            Plain view
           </Link>
+          <span className="hidden sm:inline">
+            {" "}
+            · Press{" "}
+            <kbd className="rounded border border-line bg-subtle px-1 font-mono">?</kbd> for
+            keyboard shortcuts
+          </span>
         </p>
         <nav aria-label="Contact">
           <FallbackLinks variant="inline" />

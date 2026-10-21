@@ -49,8 +49,12 @@ export function SidebarAbout() {
       <section>
         <h2 className="mb-3 text-base font-semibold">Topics</h2>
         <ul className="flex flex-wrap gap-2">
-          {skills.topics.map((topic) => (
-            <li key={topic}>
+          {skills.topics.map((topic, i) => (
+            <li
+              key={topic}
+              style={{ "--i": i } as React.CSSProperties}
+              className="motion-safe:animate-stagger-in stagger-delay"
+            >
               <span className="inline-block rounded-full bg-link-tint px-2.5 py-0.5 text-xs font-medium text-link">
                 {topic}
               </span>

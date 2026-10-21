@@ -42,8 +42,8 @@ export default async function PullsPage({
 
           {prs.length > 0 ? (
             <ul className="divide-y divide-line-muted">
-              {prs.map((pr) => (
-                <PullListRow key={pr.id} pr={pr} />
+              {prs.map((pr, i) => (
+                <PullListRow key={pr.id} pr={pr} index={i} />
               ))}
             </ul>
           ) : (

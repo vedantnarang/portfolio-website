@@ -171,10 +171,12 @@ Use Shiki themes `github-dark` / `github-light` so fenced code inherits this pal
 
 Registered once client-side: `gsap.registerPlugin(ScrollTrigger)`. All GSAP presets respect `prefers-reduced-motion` via `gsap.matchMedia()` — when reduced, render final state immediately, animate nothing.
 
+**As implemented (Phase 5):** GSAP is reached only through `lib/gsap.ts`, which **lazy-loads it after hydration** — it is never in a route's initial bundle, and home skips it entirely when nothing starts below the fold. Load-time staggers (no scrolling involved) are **Tailwind**: `motion-safe:animate-stagger-in stagger-delay` with an inline `--i` index (keyframes + utility in `globals.css`). Scroll reveals never hide content that is already on screen at load.
+
 | Preset | Where used | Recipe |
 |---|---|---|
 | **Scroll Reveal — Subtle** | File-tree rows, README sections, commit entries, issue rows | `gsap.from(el, { opacity: 0, y: 12, duration: 0.35, ease: 'power1.out', scrollTrigger: { trigger: el, start: 'top 90%', toggleActions: 'play none none reverse' } })` — y offset stays ≤16px so it reads as fade, not slide |
-| **Stagger List** | Topics pills, language legend, PR list rows | `gsap.from('.row', { opacity: 0, scale: 0.92, y: 16, duration: 0.4, stagger: { each: 0.06, from: 'start', grid: 'auto' }, ease: 'back.out(1.4)' })` |
+| **Stagger List** | Topics pills, PR list rows | Tailwind, not GSAP (it runs on load, not on scroll): `stagger-in` keyframes — opacity 0→1, translateY 16px→0, scale 0.92→1, 0.4s, `cubic-bezier(0.34,1.56,0.64,1)` ≈ `back.out(1.4)` — delayed `min(i, 8) × 60ms` |
 | **Scroll Reveal — Pinned scrub** | `/commits` timeline only | `gsap.timeline({ scrollTrigger: { trigger: section, start: 'top top', end: '+=150%', scrub: 1, pin: true } })` — **max 1 pinned section site-wide**; call `ScrollTrigger.refresh()` after fonts/images load |
 
 **Constraints:**

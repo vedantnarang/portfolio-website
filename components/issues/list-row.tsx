@@ -20,7 +20,10 @@ export function IssueListRow({ issue }: { issue: Issue }) {
   const date = closed ? issue.closedAt : issue.openedAt;
 
   return (
-    <li className="relative px-4 py-3 transition-colors duration-150 hover:bg-hover">
+    <li
+      data-hotkey-row
+      className="relative px-4 py-3 transition-colors duration-150 hover:bg-hover has-[a:focus-visible]:bg-hover"
+    >
       <div className="flex gap-3">
         <div className="flex pt-1">
           <StateIcon state={closed ? "completed" : "open"} />
