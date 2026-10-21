@@ -84,6 +84,27 @@ function optString(data: Data, key: string): string | undefined {
   return v;
 }
 
+/** YAML parses unquoted `2026-01-18` into a Date, so accept both forms
+   and normalise to an ISO date string. */
+function optDate(data: Data, key: string): string | undefined {
+  const v = data[key];
+  if (v === undefined || v === null || v === "") return undefined;
+  const date = v instanceof Date ? v : typeof v === "string" ? new Date(v) : null;
+  if (!date || Number.isNaN(date.getTime())) {
+    throw new Error(`frontmatter.${key} must be a date like 2026-01-18`);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function optBoolean(data: Data, key: string): boolean | undefined {
+  const v = data[key];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "boolean") {
+    throw new Error(`frontmatter.${key} must be true or false`);
+  }
+  return v;
+}
+
 function reqStringArray(data: Data, key: string): string[] {
   const v = data[key];
   if (v === undefined || v === null) return [];
@@ -139,8 +160,34 @@ export function validatePullFrontmatter(data: Data, fileId: number): PullFrontma
     deletions: reqNumber(data, "deletions"),
     liveUrl: optString(data, "liveUrl"),
     repoUrl: optString(data, "repoUrl"),
-    lastChecked: optString(data, "lastChecked"),
-    openedAt: optString(data, "openedAt"),
-    mergedAt: optString(data, "mergedAt"),
+    lastChecked: optDate(data, "lastChecked"),
+    openedAt: optDate(data, "openedAt"),
+    mergedAt: optDate(data, "mergedAt"),
+  };
+}
+
+export interface IssueFrontmatter {
+  id: number;
+  title: string;
+  labels: string[];
+  pinned?: boolean;
+  openedAt?: string;
+}
+
+/** Validate issue frontmatter; `fileId` comes from the filename prefix. */
+export function validateIssueFrontmatter(data: Data, fileId: number): IssueFrontmatter {
+  const id = reqNumber(data, "id");
+  if (!Number.isInteger(id)) throw new Error("frontmatter.id must be an integer");
+  if (id !== fileId) {
+    throw new Error(
+      `frontmatter.id (${id}) must match filename prefix (${fileId})`,
+    );
+  }
+  return {
+    id,
+    title: reqString(data, "title"),
+    labels: reqStringArray(data, "labels"),
+    pinned: optBoolean(data, "pinned"),
+    openedAt: optDate(data, "openedAt"),
   };
 }
