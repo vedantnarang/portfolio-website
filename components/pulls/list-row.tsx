@@ -7,9 +7,13 @@ import { site } from "@/data/site";
 
 /* GitHub PR list row (spec §3): state icon, title+#id, meta line,
    label pills, relative timestamp. Meta wraps under 480px via flex-wrap. */
-export function PullListRow({ pr }: { pr: PullRequest }) {
+export function PullListRow({ pr, index = 0 }: { pr: PullRequest; index?: number }) {
   return (
-    <li className="relative px-4 py-4 transition-colors duration-150 hover:bg-hover">
+    <li
+      data-hotkey-row
+      style={{ "--i": index } as React.CSSProperties}
+      className="relative px-4 py-4 transition-colors duration-150 hover:bg-hover has-[a:focus-visible]:bg-hover motion-safe:animate-stagger-in stagger-delay"
+    >
       <div className="flex gap-3">
         <div className="flex pt-0.5">
           <StateIcon state={pr.state} />
